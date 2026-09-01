@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { freshRSA, STEPS } from '../services/rsa';
 import type { RSAEntry, Belief } from '../services/rsa';
 
-export type View = 'setup' | 'profile' | 'checkin' | 'landing' | 'crisis' | 'flow' | 'summary' | 'journal' | 'po-dashboard' | 'family';
+export type View = 'auth' | 'reset-password' | 'setup' | 'profile' | 'checkin' | 'landing' | 'crisis' | 'flow' | 'summary' | 'journal' | 'po-dashboard' | 'family';
 
 interface UserData {
   userId: string;
@@ -112,7 +112,7 @@ const initialState = {
     lastUpdated: 0,
   } as AIProfile,
   currentEntry: freshRSA(),
-  view: 'setup' as View,
+  view: 'auth' as View,
   step: 0,
   activeBeliefIdx: -1,
   beliefSuggestions: [],
@@ -131,7 +131,7 @@ export const useRSAStore = create<RSAStore>((set) => ({
           set({ userProfile: profile, view: 'checkin' }),
 
         clearUser: () =>
-          set({ currentUser: null, userProfile: null, view: 'setup' }),
+          set({ currentUser: null, userProfile: null, view: 'auth' }),
 
         setSituation: (text) =>
           set((state) => ({

@@ -56,6 +56,17 @@
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
+
+  /* Auth component specific variables */
+  --text-color: var(--ink);
+  --text-muted: var(--text-secondary);
+  --surface-color: var(--background);
+  --surface-alt-color: var(--paper);
+  --border-color: var(--border);
+  --primary-color: var(--teal);
+  --primary-light: rgba(74, 155, 142, 0.1);
+  --primary-dark: #3a8b7e;
+  --radius: var(--radius-md);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -68,5 +79,13 @@
     --teal-light: #1e3d3a;
     --ochre-light: #3a3427;
     --brick-light: #3b3231;
+
+    /* Auth component dark mode */
+    --text-color: #ffffff;
+    --text-muted: #a9a49f;
+    --surface-color: #0f0d0b;
+    --surface-alt-color: #1a1815;
+    --border-color: #3a3530;
+    --primary-dark: #3a8b7e;
   }
 }

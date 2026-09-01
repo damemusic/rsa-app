@@ -68,32 +68,9 @@ function App() {
 
     checkAuth();
 
-    // Listen for auth changes
+    // Listen for auth changes (logout only - login is handled by checkAuth)
     const subscription = onAuthStateChange(async (user) => {
-      if (user) {
-        const recoveryCode = Math.random().toString(36).substring(2, 15);
-        setUser(user.id, recoveryCode);
-
-        // Try to load existing profile
-        try {
-          const profileResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/user/profile?userId=${user.id}`, {
-            headers: { 'Content-Type': 'application/json' },
-          });
-
-          if (profileResponse.ok) {
-            try {
-              const { encryptedProfile } = await profileResponse.json();
-              const decrypted = await decryptData(encryptedProfile, recoveryCode);
-              const { setProfile } = useRSAStore.getState();
-              setProfile(decrypted as Record<string, unknown>);
-            } catch (decryptErr) {
-              console.error('Failed to decrypt profile:', decryptErr);
-            }
-          }
-        } catch (profileErr) {
-          console.error('Failed to load profile:', profileErr);
-        }
-      } else {
+      if (!user) {
         clearUser();
       }
     });

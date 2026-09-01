@@ -45,7 +45,7 @@ app.post('/api/claude', async (req, res) => {
     }
 
     const response = await client.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-opus-5',
       max_tokens: max_tokens,
       system: system,
       messages: messages,
@@ -80,7 +80,7 @@ Example output format:
     const userPrompt = `Situation: ${situation}\n\nFactual details (Step A): ${stepA}\n\nWhat might they have been thinking?`;
 
     const response = await client.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-opus-5',
       max_tokens: 200,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
@@ -144,7 +144,7 @@ ${failedRuleDetails}
 Is the new version better? Which rules still need work?`;
 
     const response = await client.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-opus-5',
       max_tokens: 300,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],

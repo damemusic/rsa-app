@@ -38,8 +38,7 @@ const StepB: React.FC = () => {
     <div className="step-input">
       <div className="prompt-box">
         <p>
-          <strong>What were you thinking?</strong> The self-talk, the story you told yourself. Not facts, but your inner
-          voice in that moment.
+          <strong>What were you thinking?</strong> What words went through your head? Your inner voice. (Not facts—just thoughts.)
         </p>
       </div>
 
@@ -66,7 +65,7 @@ const StepB: React.FC = () => {
             className="input-textarea"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder="What were you thinking? 'I'm a failure', 'Nobody likes me', etc."
+            placeholder="Examples: 'I'm going to fail', 'I'm not good enough', 'Everyone is mad at me'"
             rows={3}
           />
           <button className="button button-primary" onClick={() => handleAddBelief(inputValue)}>

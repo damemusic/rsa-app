@@ -23,8 +23,7 @@ const StepC: React.FC = () => {
     <div className="step-input">
       <div className="prompt-box">
         <p>
-          <strong>What did you feel and do?</strong> As a direct result of these thoughts, what emotions came up? What
-          did you do or say?
+          <strong>How did you react?</strong> Because of these thoughts, what did you feel? What did you do or say?
         </p>
       </div>
 
@@ -94,8 +93,7 @@ const StepC: React.FC = () => {
 
       <div className="input-hint">
         <p>
-          <strong>Note:</strong> The goal here is to see the chain: thought → feeling → action. Often our behavior makes
-          the situation worse, which creates a cycle.
+          This shows the chain: Thought → Feeling → Action. Understanding this helps us see what to change.
         </p>
       </div>
     </div>

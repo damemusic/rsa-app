@@ -9,8 +9,7 @@ const StepE: React.FC = () => {
     <div className="step-input">
       <div className="prompt-box">
         <p>
-          <strong>What's different now?</strong> With your rational rewrites in mind, how do you feel? What would you
-          do or say differently?
+          <strong>How do things look now?</strong> With your new thoughts, how do you feel? What would you do differently?
         </p>
       </div>
 
@@ -38,8 +37,7 @@ const StepE: React.FC = () => {
 
       <div className="input-hint">
         <p>
-          <strong>This is the point of the whole exercise:</strong> When you change your thinking, your feelings and
-          actions follow. You don't have to believe the old thoughts anymore.
+          When you think differently, your feelings and actions change too. This is why we do this work.
         </p>
       </div>
     </div>

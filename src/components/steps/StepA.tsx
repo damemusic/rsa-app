@@ -9,8 +9,7 @@ const StepA: React.FC = () => {
     <div className="step-input">
       <div className="prompt-box">
         <p>
-          <strong>Fact check yourself:</strong> What are the objective facts? Who was there? What was actually said
-          or done? Avoid interpretations, judgments, or what you <em>think</em> it meant.
+          <strong>What happened?</strong> Just the facts. Who was there? What did you see or hear? Don't guess what people were thinking or why.
         </p>
       </div>
 
@@ -18,14 +17,13 @@ const StepA: React.FC = () => {
         className="input-textarea large"
         value={currentEntry.a}
         onChange={(e) => setStepA(e.target.value)}
-        placeholder="Write the facts as clearly and objectively as you can..."
+        placeholder="Example: 'My boss said my report had mistakes and looked frustrated.'"
         rows={8}
       />
 
       <div className="input-hint">
         <p>
-          For example: <em>"I made a mistake in the meeting and my boss frowned at me."</em> (not: "My boss thinks I'm
-          incompetent")
+          Stick to what you SAW or HEARD. Don't add "I know they think..." or "This means..."
         </p>
       </div>
     </div>

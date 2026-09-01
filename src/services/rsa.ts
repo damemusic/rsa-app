@@ -1,27 +1,47 @@
 export const RULES = [
-  { id: 'reality', label: 'Is it based on objective reality?' },
-  { id: 'health', label: 'Does it protect my life and health?' },
-  { id: 'goals', label: 'Does it help me reach my goals?' },
-  { id: 'conflict', label: 'Does it help me avoid needless conflict?' },
-  { id: 'emotion', label: 'Does it reduce unwanted emotional distress?' },
+  {
+    id: 'reality',
+    label: 'Is it true?',
+    hint: 'Can you prove it with facts? Or are you guessing?'
+  },
+  {
+    id: 'health',
+    label: 'Is it good for me?',
+    hint: 'Does it keep you safe and healthy? Or make things worse?'
+  },
+  {
+    id: 'goals',
+    label: 'Does it help me?',
+    hint: 'Does it move you toward what you want? Or pull you away?'
+  },
+  {
+    id: 'conflict',
+    label: 'Does it help my relationships?',
+    hint: 'Does it make things better with people? Or create problems?'
+  },
+  {
+    id: 'emotion',
+    label: 'Does it make me feel better?',
+    hint: 'Does it help you feel calmer and less stressed?'
+  },
 ];
 
 export const STEPS = ['A', 'B', 'C', 'D', 'E'];
 
 export const STEP_LABELS = {
-  A: 'Activating Event',
-  B: 'Beliefs',
-  C: 'Consequences',
-  D: 'Disputation',
-  E: 'Effect',
+  A: 'What Happened',
+  B: 'What I Thought',
+  C: 'How I Felt',
+  D: 'Fix It',
+  E: 'New Way to Think',
 };
 
 export const STEP_DESCRIPTIONS = {
-  A: 'What happened? Stick to the facts — no opinions or judgments yet.',
-  B: 'What were you thinking? Your self-talk in the moment.',
-  C: 'How did you feel and act? The emotions and behaviors that followed.',
-  D: 'Test your beliefs. Do they pass the 5 Rules for Rational Thinking?',
-  E: 'How do things change when you think about it differently?',
+  A: 'What happened? Just the facts — no opinions yet.',
+  B: 'What did you think in that moment? The words in your head.',
+  C: 'What did you feel and do? Your emotions and actions.',
+  D: 'Test your thoughts. Do they pass the 5 rules?',
+  E: 'How do things look different with your new thought?',
 };
 
 export interface Belief {

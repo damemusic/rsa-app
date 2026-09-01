@@ -11,8 +11,50 @@ import './StepFlow.css';
 
 const STEP_COMPONENTS = [StepA, StepB, StepC, StepD, StepE];
 
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error?: Error;
+}
+
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, ErrorBoundaryState> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: 'var(--space-xl)', textAlign: 'center', color: 'var(--brick)' }}>
+          <p>Something went wrong. Please try again.</p>
+          <button className="button button-primary" onClick={() => window.location.reload()}>
+            Reload Page
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 export const StepFlow: React.FC = () => {
   const { step, nextStep, previousStep, setView } = useRSAStore();
+
+  if (step === undefined || step < 0 || step >= STEP_COMPONENTS.length) {
+    return (
+      <div style={{ padding: 'var(--space-xl)', textAlign: 'center', color: 'var(--brick)' }}>
+        <p>Something went wrong. Please try again.</p>
+        <button className="button button-primary" onClick={() => window.location.reload()}>
+          Reload Page
+        </button>
+      </div>
+    );
+  }
 
   const CurrentStepComponent = STEP_COMPONENTS[step];
   const currentStepLabel = STEPS[step] as keyof typeof STEP_LABELS;
@@ -38,7 +80,9 @@ export const StepFlow: React.FC = () => {
 
         {/* Current step content */}
         <div className="step-content">
-          <CurrentStepComponent />
+          <ErrorBoundary>
+            <CurrentStepComponent />
+          </ErrorBoundary>
         </div>
 
         {/* Navigation buttons */}

@@ -78,38 +78,77 @@ const StepD: React.FC = () => {
       </div>
 
       {/* Rules checkboxes */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
         {RULES.map((rule) => (
-          <label key={rule.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={belief.ruleAnswers[rule.id] || false}
-              onChange={(e) => {
-                setBelief(activeBeliefIdx, {
-                  ruleAnswers: {
-                    ...belief.ruleAnswers,
-                    [rule.id]: e.target.checked,
-                  },
-                });
-              }}
-              style={{ width: '20px', height: '20px', cursor: 'pointer' }}
-            />
-            <span style={{ fontSize: 'var(--text-base)' }}>{rule.label}</span>
-          </label>
+          <div
+            key={rule.id}
+            style={{
+              padding: 'var(--space-md)',
+              backgroundColor: 'var(--slate-light)',
+              borderRadius: 'var(--radius-md)',
+              border: belief.ruleAnswers[rule.id] ? '2px solid var(--success)' : '2px solid transparent',
+            }}
+          >
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-md)', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={belief.ruleAnswers[rule.id] || false}
+                onChange={(e) => {
+                  setBelief(activeBeliefIdx, {
+                    ruleAnswers: {
+                      ...belief.ruleAnswers,
+                      [rule.id]: e.target.checked,
+                    },
+                  });
+                }}
+                style={{ width: '20px', height: '20px', cursor: 'pointer', marginTop: '2px', flexShrink: 0 }}
+              />
+              <div>
+                <p style={{ margin: '0 0 var(--space-sm) 0', fontWeight: 500, fontSize: 'var(--text-base)' }}>
+                  {rule.label}
+                </p>
+                {(rule as any).hint && (
+                  <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                    {(rule as any).hint}
+                  </p>
+                )}
+              </div>
+            </label>
+          </div>
         ))}
       </div>
 
       {/* Rewrite section (if any rules failed) */}
       {needsRewrite && (
         <div style={{ marginTop: 'var(--space-xl)', paddingTop: 'var(--space-xl)', borderTop: '1px solid var(--border)' }}>
-          <p style={{ margin: '0 0 var(--space-md) 0', color: 'var(--brick)', fontWeight: 500 }}>
-            ⚠️ This belief failed some rules. Rewrite it:
+          <p style={{ margin: '0 0 var(--space-md) 0', color: 'var(--brick)', fontWeight: 500, fontSize: 'var(--text-lg)' }}>
+            💡 This thought needs a rewrite. Here's what to fix:
           </p>
 
-          <div className="prompt-box">
-            <p style={{ margin: 0 }}>
-              Failed: {failedRules.map(rid => RULES.find(r => r.id === rid)?.label).join(', ')}
-            </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)', marginBottom: 'var(--space-lg)' }}>
+            {failedRules.map(rid => {
+              const rule = RULES.find(r => r.id === rid);
+              return (
+                <div
+                  key={rid}
+                  style={{
+                    padding: 'var(--space-md)',
+                    backgroundColor: 'var(--error-light)',
+                    borderLeft: '4px solid var(--brick)',
+                    borderRadius: 'var(--radius-sm)',
+                  }}
+                >
+                  <p style={{ margin: '0 0 var(--space-sm) 0', fontWeight: 500, color: 'var(--text)' }}>
+                    ✗ {rule?.label}
+                  </p>
+                  {(rule as any)?.hint && (
+                    <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                      Try this: {(rule as any).hint}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           <textarea
@@ -118,7 +157,7 @@ const StepD: React.FC = () => {
             onChange={(e) => {
               setBelief(activeBeliefIdx, { rewrite: e.target.value });
             }}
-            placeholder="Rewrite this belief to pass the rules..."
+            placeholder="Type a new version of this thought. Use the tips above to help."
             rows={3}
           />
 
@@ -139,9 +178,12 @@ const StepD: React.FC = () => {
                 padding: 'var(--space-lg)',
                 backgroundColor: 'var(--teal-light)',
                 borderRadius: 'var(--radius-md)',
+                border: '2px solid var(--success)',
               }}
             >
-              <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text)' }}>{belief.aiFeedback}</p>
+              <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text)', lineHeight: '1.6' }}>
+                {belief.aiFeedback}
+              </p>
             </div>
           )}
 

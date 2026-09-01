@@ -16,6 +16,20 @@ export async function signUp(email: string, password: string) {
   });
 
   if (error) throw error;
+
+  if (data.user) {
+    try {
+      await supabase
+        .from('rsa_users')
+        .insert({
+          id: data.user.id,
+          recovery_code_hash: '',
+        });
+    } catch (e) {
+      console.error('Failed to create rsa_users record:', e);
+    }
+  }
+
   return data;
 }
 

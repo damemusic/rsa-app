@@ -16,15 +16,6 @@ export async function signUp(email: string, password: string) {
   });
 
   if (error) throw error;
-
-  if (data.user?.id) {
-    try {
-      await supabase.rpc('create_rsa_user_if_not_exists', { user_id: data.user.id });
-    } catch (e) {
-      console.error('Failed to create rsa_users record:', e);
-    }
-  }
-
   return data;
 }
 
@@ -35,15 +26,6 @@ export async function signIn(email: string, password: string) {
   });
 
   if (error) throw error;
-
-  if (data.user?.id) {
-    try {
-      await supabase.rpc('create_rsa_user_if_not_exists', { user_id: data.user.id });
-    } catch (e) {
-      console.error('Failed to create rsa_users record:', e);
-    }
-  }
-
   return data;
 }
 

@@ -12,10 +12,22 @@ const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
+console.log('[Backend] SUPABASE_SERVICE_ROLE_KEY present:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_ANON_KEY
 );
+
+// Try to create admin client with service role key if available
+const supabaseAdmin = process.env.SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    )
+  : supabase;
+
+console.log('[Backend] Using admin client:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 // Configure CORS explicitly
 const corsOptions = {
@@ -169,7 +181,10 @@ app.post('/api/user/setup', async (req, res) => {
       return res.status(400).json({ error: 'Missing userId or recoveryCode' });
     }
 
-    const { data, error } = await supabase
+    console.log('[Setup] Using supabaseAdmin (service role key):', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+    console.log('[Setup] Creating user:', userId);
+
+    const { data, error } = await supabaseAdmin
       .from('rsa_users')
       .upsert(
         {
@@ -182,8 +197,12 @@ app.post('/api/user/setup', async (req, res) => {
       )
       .select();
 
-    if (error) throw error;
+    if (error) {
+      console.error('[Setup] Supabase error:', error);
+      throw error;
+    }
 
+    console.log('[Setup] User created successfully:', data);
     res.json({ user: data[0] });
   } catch (error) {
     console.error('Setup error:', error);

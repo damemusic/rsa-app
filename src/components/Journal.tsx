@@ -23,6 +23,10 @@ export const Journal: React.FC = () => {
     setView('landing');
   };
 
+  const handleBack = () => {
+    setView('checkin');
+  };
+
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleDateString('en-US', {
       month: 'short',
@@ -136,7 +140,10 @@ export const Journal: React.FC = () => {
           </div>
         )}
 
-        <div style={{ marginTop: 'var(--space-2xl)', textAlign: 'center' }}>
+        <div style={{ marginTop: 'var(--space-2xl)', display: 'flex', gap: 'var(--space-md)', justifyContent: 'center' }}>
+          <button className="button button-secondary" onClick={handleBack}>
+            Back
+          </button>
           <button className="button button-primary" onClick={handleNewRSA}>
             Start a New RSA
           </button>

@@ -16,7 +16,6 @@ export interface FamilyMember {
   relationshipQuality: 'supportive' | 'neutral' | 'strained';
   interactionFrequency: 'daily' | 'weekly' | 'monthly' | 'rarely';
   anxietyTriggers: string;
-  isPrivate: boolean;
 }
 
 export interface ScenarioResponse {

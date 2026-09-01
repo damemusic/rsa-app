@@ -101,6 +101,27 @@
   background-color: var(--teal-light);
 }
 
+.landing-crisis-banner {
+  padding: var(--space-lg);
+  background-color: var(--error-light, #fef2f2);
+  border-radius: var(--radius-lg);
+  border-left: 4px solid var(--error, #dc2626);
+}
+
+.button-crisis {
+  width: 100%;
+  background-color: var(--error, #dc2626);
+  color: white;
+  font-size: var(--text-lg);
+  padding: var(--space-lg) var(--space-xl);
+  font-weight: 600;
+}
+
+.button-crisis:hover:not(:disabled) {
+  background-color: #b91c1c;
+  box-shadow: var(--shadow-lg);
+}
+
 .landing-actions {
   display: flex;
   justify-content: center;

@@ -28,7 +28,6 @@ export const FamilyProfile: React.FC = () => {
     relationshipQuality: 'neutral',
     interactionFrequency: 'weekly',
     anxietyTriggers: '',
-    isPrivate: false,
   });
 
   const handleAddFamilyMember = () => {
@@ -40,7 +39,6 @@ export const FamilyProfile: React.FC = () => {
         relationshipQuality: 'neutral',
         interactionFrequency: 'weekly',
         anxietyTriggers: '',
-        isPrivate: false,
       });
       setShowForm(false);
     }
@@ -134,7 +132,6 @@ export const FamilyProfile: React.FC = () => {
                         {member.anxietyTriggers && (
                           <p><span className="label">Triggers:</span> {member.anxietyTriggers}</p>
                         )}
-                        {member.isPrivate && <p className="private-badge">🔒 Private</p>}
                       </div>
                     </div>
                   ))}
@@ -228,16 +225,6 @@ export const FamilyProfile: React.FC = () => {
                     placeholder="e.g., They're critical, they cancel plans, they remind me of my failure..."
                     rows={3}
                   />
-                </div>
-
-                <div className="form-group checkbox">
-                  <input
-                    type="checkbox"
-                    id="private-checkbox"
-                    checked={formData.isPrivate}
-                    onChange={(e) => setFormData({ ...formData, isPrivate: e.target.checked })}
-                  />
-                  <label htmlFor="private-checkbox">Mark as private (encrypted storage)</label>
                 </div>
 
                 <div className="form-actions">

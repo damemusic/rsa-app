@@ -26,6 +26,11 @@ export const Landing: React.FC = () => {
     setInputValue('');
   };
 
+  const handleQuickCrisis = () => {
+    setSituation('I need immediate support for a crisis situation.');
+    setView('crisis');
+  };
+
   return (
     <Layout title="Work It Through" subtitle="Rational Self-Analysis (RSA)">
       <div className="landing">
@@ -38,6 +43,12 @@ export const Landing: React.FC = () => {
             <strong>You</strong> do the thinking. The app guides you through each step and offers
             support when you need it.
           </p>
+        </div>
+
+        <div className="landing-crisis-banner">
+          <button className="button button-crisis" onClick={handleQuickCrisis}>
+            🆘 I'm in Crisis — Get Help Now
+          </button>
         </div>
 
         <div className="landing-form">

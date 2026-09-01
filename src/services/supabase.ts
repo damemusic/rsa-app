@@ -58,8 +58,8 @@ export async function getSession() {
   return data.session;
 }
 
-export async function onAuthStateChange(callback: (user: any) => void) {
-  const { data } = supabase.auth.onAuthStateChange((event, session) => {
+export function onAuthStateChange(callback: (user: any) => void) {
+  const { data } = supabase.auth.onAuthStateChange((_event, session) => {
     callback(session?.user || null);
   });
 

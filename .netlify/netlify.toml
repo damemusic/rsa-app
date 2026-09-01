@@ -1,16 +1,15 @@
+functionsDirectory = "/Users/trader/rsa-app/netlify/functions"
+functionsDirectoryOrigin = "default"
 plugins = []
 headers = []
 redirects = []
-
-[functions]
-
-[functions."*"]
 
 [build]
 publish = "/Users/trader/rsa-app/dist"
 publishOrigin = "config"
 commandOrigin = "config"
 command = "npm run build"
+functions = "/Users/trader/rsa-app/netlify/functions"
 
 [build.environment]
 VITE_BACKEND_URL = "https://rsa-backend-production-7b95.up.railway.app"
@@ -28,3 +27,7 @@ VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhY
 [build.processing.js]
 
 [build.services]
+
+[functions]
+
+[functions."*"]

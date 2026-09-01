@@ -6,6 +6,7 @@
   --ink: #2b2520;
   --teal: #4a9b8e;
   --teal-light: #e0ebe9;
+  --teal-dark: #00796b;
   --ochre: #b89968;
   --ochre-light: #f2ede3;
   --brick: #a85a54;
@@ -22,6 +23,13 @@
   --success: #4b9c72;
   --warning: var(--brick);
   --error: #c65f52;
+
+  /* Surface and ink variants for components */
+  --surface: #ffffff;
+  --surface-alt: var(--paper);
+  --ink-secondary: #8b8680;
+  --ink-tertiary: #e5e0d7;
+  --ink-quaternary: #f0ebe3;
 
   /* Typography */
   --font-serif: 'Lora', serif;
@@ -77,8 +85,16 @@
     --border: #3a3530;
     --slate-light: #2b2823;
     --teal-light: #1e3d3a;
+    --teal-dark: #2e6b61;
     --ochre-light: #3a3427;
     --brick-light: #3b3231;
+
+    /* Surface and ink variants for dark mode */
+    --surface: #0f0d0b;
+    --surface-alt: #1a1815;
+    --ink-secondary: #a9a49f;
+    --ink-tertiary: #3a3530;
+    --ink-quaternary: #2b2823;
 
     /* Auth component dark mode */
     --text-color: #ffffff;

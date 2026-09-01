@@ -221,10 +221,14 @@ app.post('/api/user/profile', async (req, res) => {
   }
 });
 
-// GET /api/user/profile/:userId - Retrieve encrypted profile
-app.get('/api/user/profile/:userId', async (req, res) => {
+// GET /api/user/profile - Retrieve encrypted profile
+app.get('/api/user/profile', async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = req.query.userId;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'Missing userId query parameter' });
+    }
 
     const { data, error } = await supabase
       .from('rsa_profiles')
@@ -234,7 +238,11 @@ app.get('/api/user/profile/:userId', async (req, res) => {
 
     if (error && error.code !== 'PGRST116') throw error;
 
-    res.json({ profile: data || null });
+    if (!data) {
+      return res.json({ encryptedProfile: null });
+    }
+
+    res.json({ encryptedProfile: data.encrypted_data });
   } catch (error) {
     console.error('Profile fetch error:', error);
     res.status(500).json({ error: error.message || 'Failed to fetch profile' });

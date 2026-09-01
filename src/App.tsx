@@ -11,7 +11,9 @@ import { StepFlow } from './components/StepFlow';
 import { Summary } from './components/Summary';
 import { Journal } from './components/Journal';
 import { FamilyProfile } from './components/FamilyProfile';
+import { Header } from './components/Header';
 import { getSession, onAuthStateChange } from './services/supabase';
+import { decryptData } from './services/encryption';
 import './App.css';
 
 function App() {
@@ -34,6 +36,28 @@ function App() {
         if (session?.user) {
           const recoveryCode = Math.random().toString(36).substring(2, 15);
           setUser(session.user.id, recoveryCode);
+
+          // Try to load existing profile
+          try {
+            const profileResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/user/profile?userId=${session.user.id}`, {
+              headers: { 'Content-Type': 'application/json' },
+            });
+
+            if (profileResponse.ok) {
+              try {
+                const { encryptedProfile } = await profileResponse.json();
+                const decrypted = await decryptData(encryptedProfile, recoveryCode);
+                const { setProfile } = useRSAStore.getState();
+                setProfile(decrypted as Record<string, unknown>);
+              } catch (decryptErr) {
+                console.error('Failed to decrypt profile:', decryptErr);
+              }
+            }
+            // If profile not found (404) or other errors, user will go through onboarding
+          } catch (profileErr) {
+            console.error('Failed to load profile:', profileErr);
+            // Network error is ok, user will go through onboarding
+          }
         }
       } catch (err) {
         console.error('Failed to check auth:', err);
@@ -49,6 +73,26 @@ function App() {
       if (user) {
         const recoveryCode = Math.random().toString(36).substring(2, 15);
         setUser(user.id, recoveryCode);
+
+        // Try to load existing profile
+        try {
+          const profileResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/user/profile?userId=${user.id}`, {
+            headers: { 'Content-Type': 'application/json' },
+          });
+
+          if (profileResponse.ok) {
+            try {
+              const { encryptedProfile } = await profileResponse.json();
+              const decrypted = await decryptData(encryptedProfile, recoveryCode);
+              const { setProfile } = useRSAStore.getState();
+              setProfile(decrypted as Record<string, unknown>);
+            } catch (decryptErr) {
+              console.error('Failed to decrypt profile:', decryptErr);
+            }
+          }
+        } catch (profileErr) {
+          console.error('Failed to load profile:', profileErr);
+        }
       } else {
         clearUser();
       }
@@ -71,6 +115,7 @@ function App() {
 
   return (
     <div className="app">
+      <Header />
       {!currentUser ? (
         <>
           {view === 'setup' ? <Setup /> : null}

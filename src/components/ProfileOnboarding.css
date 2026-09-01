@@ -27,13 +27,13 @@
 }
 
 .step-counter {
-  color: var(--ink-secondary);
+  color: var(--ink-secondary, #8b8680);
   font-size: 0.9rem;
   margin-bottom: 1.5rem;
 }
 
 .progress {
-  background: var(--ink-tertiary);
+  background: var(--ink-tertiary, #e5e0d7);
   height: 4px;
   border-radius: 2px;
   margin-bottom: 2rem;
@@ -61,12 +61,12 @@
 .question-section textarea {
   width: 100%;
   padding: 1rem;
-  border: 2px solid var(--ink-tertiary);
+  border: 2px solid var(--ink-tertiary, #e5e0d7);
   border-radius: 8px;
   font-family: inherit;
   font-size: 1rem;
-  color: var(--ink);
-  background: var(--paper);
+  color: var(--ink, #2b2520);
+  background: var(--paper, #faf9f6);
   resize: vertical;
   transition: border-color 0.2s;
 }
@@ -106,23 +106,23 @@
 }
 
 .button-group .btn-primary:disabled {
-  background: var(--ink-tertiary);
-  color: var(--ink-secondary);
+  background: var(--ink-tertiary, #e5e0d7);
+  color: var(--ink-secondary, #8b8680);
   cursor: not-allowed;
 }
 
 .button-group .btn-secondary {
-  background: var(--ink-tertiary);
-  color: var(--ink);
+  background: var(--ink-tertiary, #e5e0d7);
+  color: var(--ink, #2b2520);
 }
 
 .button-group .btn-secondary:hover:not(:disabled) {
-  background: var(--ink-quaternary);
+  background: var(--ink-quaternary, #f0ebe3);
   transform: translateY(-2px);
 }
 
 .button-group .btn-secondary:disabled {
-  color: var(--ink-secondary);
+  color: var(--ink-secondary, #8b8680);
   cursor: not-allowed;
 }
 
@@ -145,7 +145,7 @@
 }
 
 .profile-item p {
-  color: var(--ink-secondary);
+  color: var(--ink-secondary, #8b8680);
   margin: 0;
   line-height: 1.6;
 }

@@ -1,0 +1,46 @@
+.app-header {
+  background: var(--surface, #0f0d0b);
+  border-bottom: 1px solid var(--border, #3a3530);
+  padding: 1rem 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.app-header h1 {
+  margin: 0;
+  color: var(--ink, #f5f3f0);
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.sign-out-btn {
+  background: var(--brick, #a85a54);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sign-out-btn:hover {
+  background: #9a4d47;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(168, 90, 84, 0.3);
+}
+
+.sign-out-btn:active {
+  transform: translateY(0);
+}

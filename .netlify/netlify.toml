@@ -14,6 +14,8 @@ command = "npm run build"
 
 [build.environment]
 VITE_BACKEND_URL = "https://rsa-backend-production-7b95.up.railway.app"
+VITE_SUPABASE_URL = "https://wthlnrogmwodfbekghsj.supabase.co"
+VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0aGxucm9nbXdvZGZiZWtnaHNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxMDU4NjQsImV4cCI6MjA5MzY4MTg2NH0.xHww6r5sWLdHcZTJpn7jxcVXDvSMRBw9z2TfhaVKHyk"
 
 [build.processing]
 

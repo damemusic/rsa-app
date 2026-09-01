@@ -2,9 +2,18 @@ import { create } from 'zustand';
 import { freshRSA, STEPS } from '../services/rsa';
 import type { RSAEntry, Belief } from '../services/rsa';
 
-export type View = 'landing' | 'crisis' | 'flow' | 'summary' | 'journal';
+export type View = 'setup' | 'profile' | 'checkin' | 'landing' | 'crisis' | 'flow' | 'summary' | 'journal' | 'po-dashboard';
+
+interface UserData {
+  userId: string;
+  recoveryCode: string;
+}
 
 interface RSAStore {
+  // User data
+  currentUser: UserData | null;
+  userProfile: Record<string, unknown> | null;
+
   // Current RSA being worked on
   currentEntry: RSAEntry;
 
@@ -21,7 +30,12 @@ interface RSAStore {
   // Journal (saved entries)
   entries: RSAEntry[];
 
-  // Actions
+  // User actions
+  setUser: (userId: string, recoveryCode: string) => void;
+  setProfile: (profile: Record<string, unknown>) => void;
+  clearUser: () => void;
+
+  // Current RSA actions
   setSituation: (text: string) => void;
   setStepA: (text: string) => void;
   addBelief: (text: string) => void;
@@ -53,8 +67,10 @@ interface RSAStore {
 }
 
 const initialState = {
+  currentUser: null,
+  userProfile: null,
   currentEntry: freshRSA(),
-  view: 'landing' as View,
+  view: 'setup' as View,
   step: 0,
   activeBeliefIdx: -1,
   beliefSuggestions: [],
@@ -65,6 +81,15 @@ const initialState = {
 
 export const useRSAStore = create<RSAStore>((set) => ({
         ...initialState,
+
+        setUser: (userId, recoveryCode) =>
+          set({ currentUser: { userId, recoveryCode }, view: 'profile' }),
+
+        setProfile: (profile) =>
+          set({ userProfile: profile, view: 'checkin' }),
+
+        clearUser: () =>
+          set({ currentUser: null, userProfile: null, view: 'setup' }),
 
         setSituation: (text) =>
           set((state) => ({
@@ -165,7 +190,7 @@ export const useRSAStore = create<RSAStore>((set) => ({
             entries: [...state.entries, state.currentEntry],
             currentEntry: freshRSA(),
             step: 0,
-            view: 'landing',
+            view: 'checkin',
           })),
 
         loadEntries: () => {

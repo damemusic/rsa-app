@@ -1,0 +1,151 @@
+.profile-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 1rem;
+  background: var(--paper);
+}
+
+.profile-card {
+  max-width: 600px;
+  width: 100%;
+  padding: 2rem;
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.profile-card h1,
+.profile-card h2 {
+  color: var(--ink);
+  margin-bottom: 1rem;
+}
+
+.profile-card h2 {
+  font-size: 1.5rem;
+}
+
+.step-counter {
+  color: var(--ink-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+.progress {
+  background: var(--ink-tertiary);
+  height: 4px;
+  border-radius: 2px;
+  margin-bottom: 2rem;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: var(--teal);
+  transition: width 0.3s ease;
+}
+
+.question-section {
+  margin: 2rem 0;
+}
+
+.question-section label {
+  display: block;
+  color: var(--ink);
+  font-weight: 600;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+.question-section textarea {
+  width: 100%;
+  padding: 1rem;
+  border: 2px solid var(--ink-tertiary);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 1rem;
+  color: var(--ink);
+  background: var(--paper);
+  resize: vertical;
+  transition: border-color 0.2s;
+}
+
+.question-section textarea:focus {
+  outline: none;
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(0, 121, 107, 0.1);
+}
+
+.button-group {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.button-group button {
+  flex: 1;
+  padding: 1rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.button-group .btn-primary {
+  background: var(--teal);
+  color: white;
+}
+
+.button-group .btn-primary:hover:not(:disabled) {
+  background: var(--teal-dark, #00796b);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 121, 107, 0.3);
+}
+
+.button-group .btn-primary:disabled {
+  background: var(--ink-tertiary);
+  color: var(--ink-secondary);
+  cursor: not-allowed;
+}
+
+.button-group .btn-secondary {
+  background: var(--ink-tertiary);
+  color: var(--ink);
+}
+
+.button-group .btn-secondary:hover:not(:disabled) {
+  background: var(--ink-quaternary);
+  transform: translateY(-2px);
+}
+
+.button-group .btn-secondary:disabled {
+  color: var(--ink-secondary);
+  cursor: not-allowed;
+}
+
+.profile-display {
+  background: var(--paper);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+}
+
+.profile-item {
+  margin-bottom: 1.5rem;
+}
+
+.profile-item strong {
+  color: var(--teal);
+  text-transform: capitalize;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.profile-item p {
+  color: var(--ink-secondary);
+  margin: 0;
+  line-height: 1.6;
+}

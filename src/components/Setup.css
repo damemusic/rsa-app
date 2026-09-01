@@ -1,0 +1,149 @@
+.setup-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 1rem;
+  background: var(--paper);
+}
+
+.setup-card {
+  max-width: 600px;
+  width: 100%;
+  padding: 2rem;
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.setup-card h1 {
+  color: var(--ink);
+  margin-bottom: 1rem;
+  font-size: 2rem;
+}
+
+.setup-card p {
+  color: var(--ink-secondary);
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.setup-card .warning {
+  background: #fff3cd;
+  border-left: 4px solid #ff6b6b;
+  padding: 1rem;
+  border-radius: 4px;
+  color: #dc3545;
+  margin-bottom: 1.5rem;
+}
+
+.recovery-code-display {
+  background: var(--ink-tertiary);
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin: 1.5rem 0;
+  font-family: 'Courier New', monospace;
+  text-align: center;
+  word-break: break-all;
+  color: var(--teal);
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.setup-info {
+  background: var(--paper);
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin: 1.5rem 0;
+}
+
+.setup-info h3 {
+  color: var(--ink);
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+
+.setup-info ul {
+  list-style: none;
+  padding: 0;
+}
+
+.setup-info li {
+  color: var(--ink-secondary);
+  margin-bottom: 0.75rem;
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+.setup-info li:before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--teal);
+  font-weight: bold;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  margin: 1.5rem 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox input {
+  width: 20px;
+  height: 20px;
+  margin-right: 0.75rem;
+  cursor: pointer;
+}
+
+.checkbox label {
+  color: var(--ink);
+  margin: 0;
+}
+
+.btn-primary,
+.btn-secondary {
+  width: 100%;
+  padding: 1rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 1rem;
+}
+
+.btn-primary {
+  background: var(--teal);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--teal-dark, #00796b);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 121, 107, 0.3);
+}
+
+.btn-primary:disabled {
+  background: var(--ink-tertiary);
+  color: var(--ink-secondary);
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: var(--ink-tertiary);
+  color: var(--ink);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--ink-quaternary);
+  transform: translateY(-2px);
+}
+
+.btn-secondary:disabled {
+  color: var(--ink-secondary);
+  cursor: not-allowed;
+}

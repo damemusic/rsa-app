@@ -75,8 +75,7 @@ export function ProfileOnboarding() {
 
       // Encrypt and save profile
       const encrypted = await encryptData(profile, currentUser.recoveryCode);
-
-      const saveResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/user/profile`, {
+      const saveRes = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/user/profile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -84,8 +83,10 @@ export function ProfileOnboarding() {
           encryptedProfile: encrypted,
         }),
       });
-
-      if (!saveResponse.ok) throw new Error('Profile save failed');
+      if (!saveRes.ok) {
+        const err = await saveRes.json();
+        throw new Error(err.error || 'Failed to save profile');
+      }
 
       setProfile(profile);
     } catch (err) {

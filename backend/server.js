@@ -17,7 +17,15 @@ const supabase = createClient(
   process.env.SUPABASE_ANON_KEY
 );
 
-app.use(cors());
+// Configure CORS explicitly
+const corsOptions = {
+  origin: '*',
+  methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE', 'PATCH', 'HEAD'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: false,
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 const PORT = process.env.PORT || 3001;
@@ -106,15 +114,34 @@ app.post('/api/check-rewrite', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const rulesList = failedRuleIds
-      .map(id => `- ${ruleDescriptions[id] || id}`)
-      .join('\n');
+    const ruleHints = {
+      reality: 'Look for proof. Can you point to facts that show this is true?',
+      health: 'Does this thought help keep you safe? Does it make you feel calmer?',
+      goals: 'Ask yourself: does this get me closer to what I want? Or further away?',
+      conflict: 'Will this thought help me get along with people? Or cause problems?',
+      emotion: 'Does this thought make you feel better and less stressed?',
+    };
 
-    const systemPrompt = `You are a non-clinical co-facilitator helping someone rewrite unhelpful thinking patterns using the 5 Rules for Rational Thinking. Your job is to be honest (not flattering) about whether their rewrite actually addresses the rules it originally failed.
+    const systemPrompt = `You are a caring helper working with someone who is stressed. Use VERY simple, 5th-grade level language. Your job is to check if their rewrite is better than their original belief.
 
-If the rewrite is just the same belief in softer language, say so plainly. If it's a genuine shift in thinking that passes the failed rules, say that. Keep your feedback to 2–3 sentences.`;
+For each rule they FAILED, check if their new version passes that rule. Be specific and kind.
 
-    const userPrompt = `Original belief: "${originalBelief}"\n\nIt failed these rules:\n${rulesList}\n\nTheir rewrite: "${rewrite}"\n\nDoes the rewrite actually pass the rules it failed, or is it just softer wording of the same thing?`;
+If the rewrite doesn't pass a rule, give ONE clear tip on how to fix it — like you're talking to a friend.
+
+Keep total response to 2-3 sentences max.`;
+
+    const failedRuleDetails = failedRuleIds
+      .map(id => `Rule: "${ruleDescriptions[id] || id}"\nTip: ${ruleHints[id] || 'Think about this rule.'}`)
+      .join('\n\n');
+
+    const userPrompt = `Original belief: "${originalBelief}"
+
+They rewrote it to: "${rewrite}"
+
+Rules it needs to fix:
+${failedRuleDetails}
+
+Is the new version better? Which rules still need work?`;
 
     const response = await client.messages.create({
       model: 'claude-3-5-sonnet-20241022',

@@ -112,3 +112,59 @@ export function onAuthStateChange(callback: (user: any) => void) {
 
   return data.subscription;
 }
+
+export async function saveProfile(userId: string, encryptedData: string) {
+  const { data, error } = await supabase
+    .from('rsa_profiles')
+    .upsert(
+      {
+        user_id: userId,
+        encrypted_data: encryptedData,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id' }
+    )
+    .select();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function getProfile(userId: string) {
+  const { data, error } = await supabase
+    .from('rsa_profiles')
+    .select('encrypted_data')
+    .eq('user_id', userId)
+    .single();
+
+  if (error && error.code !== 'PGRST116') throw error;
+  return data?.encrypted_data || null;
+}
+
+export async function setupUser(userId: string, recoveryCode: string) {
+  console.log('[Setup] Creating user:', userId);
+  try {
+    const { data, error } = await supabase
+      .from('rsa_users')
+      .upsert(
+        {
+          id: userId,
+          recovery_code_hash: btoa(recoveryCode),
+          created_at: new Date().toISOString(),
+          last_check_in: null,
+        },
+        { onConflict: 'id' }
+      )
+      .select();
+
+    if (error) {
+      console.error('[Setup] Error creating user:', error);
+      throw error;
+    }
+    console.log('[Setup] User created successfully:', data);
+    return data;
+  } catch (err) {
+    console.error('[Setup] Exception creating user:', err);
+    throw err;
+  }
+}

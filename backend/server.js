@@ -219,7 +219,7 @@ app.post('/api/user/profile', async (req, res) => {
       return res.status(400).json({ error: 'Missing userId or encryptedProfile' });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('rsa_profiles')
       .upsert(
         {

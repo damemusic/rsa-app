@@ -4,7 +4,7 @@ import { Layout } from './Layout';
 import './Journal.css';
 
 export const Journal: React.FC = () => {
-  const { entries, deleteEntry, setView, reset } = useRSAStore();
+  const { entries, deleteEntry, setView, resetEntry } = useRSAStore();
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
 
   const selected = entries.find(e => e.id === selectedId);
@@ -19,7 +19,7 @@ export const Journal: React.FC = () => {
   };
 
   const handleNewRSA = () => {
-    reset();
+    resetEntry();
     setView('landing');
   };
 

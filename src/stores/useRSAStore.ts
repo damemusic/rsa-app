@@ -64,6 +64,7 @@ interface RSAStore {
 
   // Reset
   reset: () => void;
+  resetEntry: () => void;
 }
 
 const initialState = {
@@ -205,5 +206,15 @@ export const useRSAStore = create<RSAStore>((set) => ({
         reset: () =>
           set({
             ...initialState,
+          }),
+
+        resetEntry: () =>
+          set({
+            currentEntry: freshRSA(),
+            step: 0,
+            activeBeliefIdx: -1,
+            beliefSuggestions: [],
+            suggestLoading: false,
+            suggestError: '',
           }),
       }));

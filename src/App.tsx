@@ -33,6 +33,7 @@ function App() {
     const checkAuth = async () => {
       try {
         console.log('[App] checkAuth starting');
+        console.log('[App] VITE_BACKEND_URL:', import.meta.env.VITE_BACKEND_URL);
         const session = await getSession();
         console.log('[App] Session:', session?.user?.id ? 'exists' : 'null');
 
@@ -44,8 +45,15 @@ function App() {
 
           // Setup user in database if not already done
           try {
-            console.log('[App] Calling /api/user/setup');
-            const setupResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/user/setup`, {
+            console.log('[App] Calling /api/user/setup with backend URL:', import.meta.env.VITE_BACKEND_URL);
+            const backendUrl = import.meta.env.VITE_BACKEND_URL;
+            if (!backendUrl) {
+              console.error('[App] VITE_BACKEND_URL is not set!');
+              throw new Error('Backend URL not configured');
+            }
+            const setupUrl = `${backendUrl}/api/user/setup`;
+            console.log('[App] Setup URL:', setupUrl);
+            const setupResponse = await fetch(setupUrl, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -57,6 +65,8 @@ function App() {
             if (!setupResponse.ok) {
               const error = await setupResponse.json();
               console.error('[App] /api/user/setup error:', error);
+            } else {
+              console.log('[App] /api/user/setup success');
             }
           } catch (setupErr) {
             console.error('[App] /api/user/setup exception:', setupErr);

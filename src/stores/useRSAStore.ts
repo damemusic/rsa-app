@@ -2,17 +2,44 @@ import { create } from 'zustand';
 import { freshRSA, STEPS } from '../services/rsa';
 import type { RSAEntry, Belief } from '../services/rsa';
 
-export type View = 'setup' | 'profile' | 'checkin' | 'landing' | 'crisis' | 'flow' | 'summary' | 'journal' | 'po-dashboard';
+export type View = 'setup' | 'profile' | 'checkin' | 'landing' | 'crisis' | 'flow' | 'summary' | 'journal' | 'po-dashboard' | 'family';
 
 interface UserData {
   userId: string;
   recoveryCode: string;
 }
 
+export interface FamilyMember {
+  id: string;
+  name: string;
+  role: 'parent' | 'sibling' | 'partner' | 'friend' | 'child' | 'other';
+  relationshipQuality: 'supportive' | 'neutral' | 'strained';
+  interactionFrequency: 'daily' | 'weekly' | 'monthly' | 'rarely';
+  anxietyTriggers: string;
+  isPrivate: boolean;
+}
+
+export interface ScenarioResponse {
+  id: string;
+  scenario: string;
+  userResponse: string;
+  timestamp: number;
+}
+
+export interface AIProfile {
+  familyMembers: FamilyMember[];
+  scenarioResponses: ScenarioResponse[];
+  reactionPatterns: string[];
+  lastUpdated: number;
+}
+
 interface RSAStore {
   // User data
   currentUser: UserData | null;
   userProfile: Record<string, unknown> | null;
+
+  // AI Profile (family & scenarios)
+  aiProfile: AIProfile;
 
   // Current RSA being worked on
   currentEntry: RSAEntry;
@@ -51,6 +78,14 @@ interface RSAStore {
   // Belief suggestions (Step B)
   setBeliefSuggestions: (suggestions: string[], loading?: boolean, error?: string) => void;
 
+  // Family & AI Profile actions
+  addFamilyMember: (member: Omit<FamilyMember, 'id'>) => void;
+  updateFamilyMember: (id: string, updates: Partial<FamilyMember>) => void;
+  deleteFamilyMember: (id: string) => void;
+  addScenarioResponse: (scenario: string, response: string) => void;
+  clearScenarioResponses: () => void;
+  updateReactionPatterns: (patterns: string[]) => void;
+
   // Navigation
   goToStep: (step: number) => void;
   nextStep: () => void;
@@ -70,6 +105,12 @@ interface RSAStore {
 const initialState = {
   currentUser: null,
   userProfile: null,
+  aiProfile: {
+    familyMembers: [],
+    scenarioResponses: [],
+    reactionPatterns: [],
+    lastUpdated: 0,
+  } as AIProfile,
   currentEntry: freshRSA(),
   view: 'setup' as View,
   step: 0,
@@ -217,4 +258,71 @@ export const useRSAStore = create<RSAStore>((set) => ({
             suggestLoading: false,
             suggestError: '',
           }),
+
+        addFamilyMember: (member) =>
+          set((state) => ({
+            aiProfile: {
+              ...state.aiProfile,
+              familyMembers: [
+                ...state.aiProfile.familyMembers,
+                { ...member, id: `member-${Date.now()}` },
+              ],
+              lastUpdated: Date.now(),
+            },
+          })),
+
+        updateFamilyMember: (id, updates) =>
+          set((state) => ({
+            aiProfile: {
+              ...state.aiProfile,
+              familyMembers: state.aiProfile.familyMembers.map((m) =>
+                m.id === id ? { ...m, ...updates } : m
+              ),
+              lastUpdated: Date.now(),
+            },
+          })),
+
+        deleteFamilyMember: (id) =>
+          set((state) => ({
+            aiProfile: {
+              ...state.aiProfile,
+              familyMembers: state.aiProfile.familyMembers.filter((m) => m.id !== id),
+              lastUpdated: Date.now(),
+            },
+          })),
+
+        addScenarioResponse: (scenario, response) =>
+          set((state) => ({
+            aiProfile: {
+              ...state.aiProfile,
+              scenarioResponses: [
+                ...state.aiProfile.scenarioResponses,
+                {
+                  id: `scenario-${Date.now()}`,
+                  scenario,
+                  userResponse: response,
+                  timestamp: Date.now(),
+                },
+              ],
+              lastUpdated: Date.now(),
+            },
+          })),
+
+        clearScenarioResponses: () =>
+          set((state) => ({
+            aiProfile: {
+              ...state.aiProfile,
+              scenarioResponses: [],
+              lastUpdated: Date.now(),
+            },
+          })),
+
+        updateReactionPatterns: (patterns) =>
+          set((state) => ({
+            aiProfile: {
+              ...state.aiProfile,
+              reactionPatterns: patterns,
+              lastUpdated: Date.now(),
+            },
+          })),
       }));

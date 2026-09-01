@@ -117,6 +117,9 @@ export function CheckIn() {
               <button onClick={handleSkip} className="btn-secondary">
                 I'm Doing OK (Skip for now)
               </button>
+              <button onClick={() => setView('family')} className="btn-secondary">
+                Manage Family Profile
+              </button>
             </div>
           </>
         ) : (
@@ -143,9 +146,14 @@ export function CheckIn() {
               </div>
             </div>
 
-            <button onClick={() => setView('journal')} className="btn-secondary">
-              View Journal
-            </button>
+            <div className="checkin-options">
+              <button onClick={() => setView('journal')} className="btn-secondary">
+                View Journal
+              </button>
+              <button onClick={() => setView('family')} className="btn-secondary">
+                Manage Family Profile
+              </button>
+            </div>
           </>
         )}
       </div>

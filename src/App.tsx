@@ -7,6 +7,7 @@ import { Crisis } from './components/Crisis';
 import { StepFlow } from './components/StepFlow';
 import { Summary } from './components/Summary';
 import { Journal } from './components/Journal';
+import { FamilyProfile } from './components/FamilyProfile';
 import './App.css';
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
           {view === 'flow' && <StepFlow />}
           {view === 'summary' && <Summary />}
           {view === 'journal' && <Journal />}
+          {view === 'family' && <FamilyProfile />}
         </>
       )}
     </div>

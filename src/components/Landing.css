@@ -1,0 +1,108 @@
+.landing {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xl);
+}
+
+.landing-intro {
+  padding: var(--space-xl);
+  background-color: var(--teal-light);
+  border-radius: var(--radius-lg);
+  border-left: 4px solid var(--teal);
+}
+
+.landing-intro p {
+  margin: 0 0 var(--space-md) 0;
+  font-family: var(--font-serif);
+  font-size: var(--text-lg);
+  line-height: var(--line-height-relaxed);
+  color: var(--text);
+}
+
+.landing-intro p:last-child {
+  margin-bottom: 0;
+}
+
+.landing-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.landing-form label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.label-text {
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--text);
+  font-family: var(--font-sans);
+}
+
+.input-textarea {
+  font-family: var(--font-serif);
+  font-size: var(--text-base);
+  line-height: var(--line-height-relaxed);
+  padding: var(--space-lg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--background);
+  color: var(--text);
+  resize: vertical;
+  min-height: 120px;
+}
+
+.input-textarea:focus {
+  outline: none;
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(74, 155, 142, 0.1);
+}
+
+.input-textarea::placeholder {
+  color: var(--text-secondary);
+}
+
+.button {
+  padding: var(--space-md) var(--space-xl);
+  font-size: var(--text-base);
+  font-weight: 500;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: all 0.2s ease;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.button-primary {
+  background-color: var(--teal);
+  color: white;
+}
+
+.button-primary:hover:not(:disabled) {
+  background-color: #3a8b7e;
+  box-shadow: var(--shadow-md);
+}
+
+.button-secondary {
+  background-color: transparent;
+  color: var(--teal);
+  border: 1px solid var(--teal);
+}
+
+.button-secondary:hover:not(:disabled) {
+  background-color: var(--teal-light);
+}
+
+.landing-actions {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-lg);
+}

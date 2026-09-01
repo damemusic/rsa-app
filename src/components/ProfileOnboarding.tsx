@@ -76,7 +76,7 @@ export function ProfileOnboarding() {
       // Encrypt and save profile
       const encrypted = await encryptData(profile, currentUser.recoveryCode);
 
-      const saveResponse = await fetch(`${import.meta.env.REACT_APP_BACKEND_URL}/api/user/profile`, {
+      const saveResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/user/profile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

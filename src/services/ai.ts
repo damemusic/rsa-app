@@ -1,7 +1,7 @@
 // Claude API integration for RSA app
 // Handles two AI touchpoints: belief suggestions (Step B) and rewrite feedback (Step D)
 
-const BACKEND_URL = import.meta.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
 
 export async function callClaude(
   system: string,

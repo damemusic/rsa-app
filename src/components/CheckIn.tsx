@@ -21,7 +21,7 @@ export function CheckIn() {
 
       try {
         const response = await fetch(
-          `${import.meta.env.REACT_APP_BACKEND_URL}/api/check-in/schedule/${currentUser.userId}`
+          `${import.meta.env.VITE_BACKEND_URL}/api/check-in/schedule/${currentUser.userId}`
         );
 
         if (!response.ok) throw new Error('Failed to fetch schedule');
@@ -48,7 +48,7 @@ export function CheckIn() {
     if (!currentUser) return;
 
     try {
-      const response = await fetch(`${import.meta.env.REACT_APP_BACKEND_URL}/api/check-in`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/check-in`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

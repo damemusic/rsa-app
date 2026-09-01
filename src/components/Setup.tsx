@@ -28,7 +28,7 @@ export function Setup() {
       const userId = `user_${Date.now()}`;
 
       // Save to backend
-      const response = await fetch(`${import.meta.env.REACT_APP_BACKEND_URL}/api/user/setup`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/user/setup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, recoveryCode }),

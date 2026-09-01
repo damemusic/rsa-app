@@ -38,16 +38,20 @@
 }
 
 .recovery-code-display {
-  background: var(--ink-tertiary);
+  background: var(--paper);
+  border: 2px solid var(--teal);
   padding: 1.5rem;
   border-radius: 8px;
   margin: 1.5rem 0;
   font-family: 'Courier New', monospace;
   text-align: center;
   word-break: break-all;
-  color: var(--teal);
-  font-size: 1.1rem;
-  font-weight: 500;
+  color: var(--ink);
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 2;
+  user-select: all;
 }
 
 .setup-info {
@@ -55,12 +59,14 @@
   padding: 1.5rem;
   border-radius: 8px;
   margin: 1.5rem 0;
+  border-left: 4px solid var(--teal);
 }
 
 .setup-info h3 {
   color: var(--ink);
   margin-bottom: 1rem;
-  font-size: 1rem;
+  font-size: 1.1rem;
+  font-weight: 700;
 }
 
 .setup-info ul {
@@ -69,18 +75,22 @@
 }
 
 .setup-info li {
-  color: var(--ink-secondary);
-  margin-bottom: 0.75rem;
-  padding-left: 1.5rem;
+  color: var(--ink);
+  margin-bottom: 1rem;
+  padding-left: 1.75rem;
   position: relative;
+  font-size: 1rem;
+  line-height: 1.5;
+  font-weight: 500;
 }
 
 .setup-info li:before {
-  content: '✓';
+  content: '•';
   position: absolute;
   left: 0;
   color: var(--teal);
   font-weight: bold;
+  font-size: 1.5rem;
 }
 
 .checkbox {

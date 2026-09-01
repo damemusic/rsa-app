@@ -279,7 +279,7 @@ app.post('/api/check-in', async (req, res) => {
       return res.status(400).json({ error: 'Missing userId' });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('rsa_check_ins')
       .insert({
         user_id: userId,
@@ -291,7 +291,7 @@ app.post('/api/check-in', async (req, res) => {
     if (error) throw error;
 
     // Update last check-in on user
-    await supabase
+    await supabaseAdmin
       .from('rsa_users')
       .update({ last_check_in: new Date().toISOString() })
       .eq('id', userId);
@@ -308,7 +308,7 @@ app.get('/api/check-in/schedule/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('rsa_users')
       .select('created_at, last_check_in')
       .eq('id', userId)

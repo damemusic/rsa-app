@@ -1,17 +1,5 @@
-// Client-side encryption service using TweetNaCl.js
+// Client-side encryption service using Web Crypto API
 // All user data (profile, RSA entries) encrypted before sending to backend
-
-import * as nacl from 'tweetnacl';
-
-// Helper: encode string to Uint8Array
-function encodeUTF8(str: string): Uint8Array {
-  return new TextEncoder().encode(str);
-}
-
-// Helper: decode Uint8Array to string
-function decodeUTF8(arr: Uint8Array): string {
-  return new TextDecoder().decode(arr);
-}
 
 // Helper: encode Uint8Array to base64
 function encodeBase64(arr: Uint8Array): string {
@@ -33,7 +21,7 @@ function decodeBase64(str: string): Uint8Array {
 }
 
 // Derive a key from recovery code using PBKDF2
-async function deriveKey(recoveryCode: string): Promise<Uint8Array> {
+async function deriveKey(recoveryCode: string): Promise<CryptoKey> {
   const encoder = new TextEncoder();
   const data = encoder.encode(recoveryCode);
 
@@ -58,9 +46,7 @@ async function deriveKey(recoveryCode: string): Promise<Uint8Array> {
     ['encrypt', 'decrypt']
   );
 
-  // Export the key as raw bytes
-  const exported = await crypto.subtle.exportKey('raw', derivedKey);
-  return new Uint8Array(exported);
+  return derivedKey;
 }
 
 // Encrypt data with recovery code
@@ -68,19 +54,22 @@ export async function encryptData(data: unknown, recoveryCode: string): Promise<
   try {
     const key = await deriveKey(recoveryCode);
     const jsonStr = JSON.stringify(data);
-    const plaintext = encodeUTF8(jsonStr);
+    const plaintext = new TextEncoder().encode(jsonStr);
 
-    // TweetNaCl.js secretbox requires 32-byte key
-    const keyArray = key.slice(0, 32);
-    const nonce = nacl.randomBytes(24);
-    const encrypted = nacl.secretbox(plaintext, nonce, keyArray);
+    // Generate random 12-byte IV for AES-GCM
+    const iv = crypto.getRandomValues(new Uint8Array(12));
 
-    if (!encrypted) throw new Error('Encryption failed');
+    // Encrypt using AES-GCM
+    const encrypted = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      plaintext
+    );
 
-    // Combine nonce + encrypted data
-    const combined = new Uint8Array(nonce.length + encrypted.length);
-    combined.set(nonce);
-    combined.set(encrypted, nonce.length);
+    // Combine IV + encrypted data
+    const combined = new Uint8Array(iv.length + encrypted.byteLength);
+    combined.set(iv);
+    combined.set(new Uint8Array(encrypted), iv.length);
 
     return encodeBase64(combined);
   } catch (err) {
@@ -95,16 +84,18 @@ export async function decryptData<T>(encrypted: string, recoveryCode: string): P
     const key = await deriveKey(recoveryCode);
     const combined = decodeBase64(encrypted);
 
-    // Extract nonce and ciphertext
-    const nonce = combined.slice(0, 24);
-    const ciphertext = combined.slice(24);
+    // Extract IV and ciphertext
+    const iv = combined.slice(0, 12);
+    const ciphertext = combined.slice(12);
 
-    const keyArray = key.slice(0, 32);
-    const decrypted = nacl.secretbox.open(ciphertext, nonce, keyArray);
+    // Decrypt using AES-GCM
+    const decrypted = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      ciphertext
+    );
 
-    if (!decrypted) throw new Error('Decryption failed');
-
-    const jsonStr = decodeUTF8(decrypted);
+    const jsonStr = new TextDecoder().decode(decrypted);
     return JSON.parse(jsonStr) as T;
   } catch (err) {
     console.error('Decryption error:', err);

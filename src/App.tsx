@@ -83,10 +83,16 @@ function App() {
               const { setProfile } = useRSAStore.getState();
               setProfile(decrypted as Record<string, unknown>);
               console.log('[App] Profile loaded and decrypted');
+            } else {
+              // No profile found, navigate to profile creation
+              const { setView } = useRSAStore.getState();
+              setView('profile');
             }
           } catch (profileErr) {
             console.error('[App] Failed to load profile:', profileErr);
-            // User will go through onboarding if profile load fails
+            // Navigate to profile creation if decryption fails (e.g., old format incompatible)
+            const { setView } = useRSAStore.getState();
+            setView('profile');
           }
         }
       } catch (err) {

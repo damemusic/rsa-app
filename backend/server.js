@@ -52,10 +52,16 @@ app.post('/api/claude', async (req, res) => {
   try {
     const { system, messages, max_tokens = 500 } = req.body;
 
+    console.log('[Claude API] Received request');
+    console.log('[Claude API]   system length:', system?.length);
+    console.log('[Claude API]   messages count:', messages?.length);
+    console.log('[Claude API]   max_tokens:', max_tokens);
+
     if (!system || !messages) {
       return res.status(400).json({ error: 'Missing system or messages' });
     }
 
+    console.log('[Claude API] Calling Anthropic API with model claude-opus-5');
     const response = await client.messages.create({
       model: 'claude-opus-5',
       max_tokens: max_tokens,
@@ -63,10 +69,30 @@ app.post('/api/claude', async (req, res) => {
       messages: messages,
     });
 
-    const content = response.content[0]?.type === 'text' ? response.content[0].text : '';
+    console.log('[Claude API] API response received');
+    console.log('[Claude API]   response.content type:', typeof response.content);
+    console.log('[Claude API]   response.content length:', response.content?.length);
+    console.log('[Claude API]   response.content[0]:', response.content?.[0]);
+    console.log('[Claude API]   response.stop_reason:', response.stop_reason);
+
+    // Extract text content from response
+    let content = '';
+    if (response.content && response.content.length > 0) {
+      const firstContent = response.content[0];
+      console.log('[Claude API]   firstContent type:', firstContent.type);
+      console.log('[Claude API]   firstContent.text length:', firstContent.text?.length);
+
+      if (firstContent.type === 'text' && firstContent.text) {
+        content = firstContent.text;
+      }
+    }
+
+    console.log('[Claude API] Extracted content length:', content.length);
     res.json({ content });
   } catch (error) {
-    console.error('Claude API error:', error);
+    console.error('[Claude API] Error:', error);
+    console.error('[Claude API] Error message:', error.message);
+    console.error('[Claude API] Error type:', error.constructor.name);
     res.status(500).json({
       error: error.message || 'Failed to call Claude API',
     });

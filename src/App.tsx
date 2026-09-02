@@ -12,7 +12,7 @@ import { Summary } from './components/Summary';
 import { Journal } from './components/Journal';
 import { FamilyProfile } from './components/FamilyProfile';
 import { Header } from './components/Header';
-import { getSession, onAuthStateChange, getProfile, getAIProfile } from './services/supabase';
+import { getSession, onAuthStateChange, getProfile } from './services/supabase';
 import { decryptData } from './services/encryption';
 import './App.css';
 

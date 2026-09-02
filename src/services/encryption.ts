@@ -58,6 +58,7 @@ export async function encryptData(data: unknown, recoveryCode: string): Promise<
 
     // Generate random 12-byte IV for AES-GCM
     const iv = crypto.getRandomValues(new Uint8Array(12));
+    console.log('[Encryption] IV length:', iv.length);
 
     // Encrypt using AES-GCM
     const encrypted = await crypto.subtle.encrypt(
@@ -66,14 +67,18 @@ export async function encryptData(data: unknown, recoveryCode: string): Promise<
       plaintext
     );
 
+    console.log('[Encryption] Encrypted length:', encrypted.byteLength);
+
     // Combine IV + encrypted data
     const combined = new Uint8Array(iv.length + encrypted.byteLength);
     combined.set(iv);
     combined.set(new Uint8Array(encrypted), iv.length);
 
-    return encodeBase64(combined);
+    const encoded = encodeBase64(combined);
+    console.log('[Encryption] Encoded base64 length:', encoded.length);
+    return encoded;
   } catch (err) {
-    console.error('Encryption error:', err);
+    console.error('[Encryption] Encryption error:', err);
     throw new Error('Failed to encrypt data');
   }
 }
@@ -81,12 +86,16 @@ export async function encryptData(data: unknown, recoveryCode: string): Promise<
 // Decrypt data with recovery code
 export async function decryptData<T>(encrypted: string, recoveryCode: string): Promise<T> {
   try {
+    console.log('[Encryption] Decrypting data, input length:', encrypted?.length, 'type:', typeof encrypted);
     const key = await deriveKey(recoveryCode);
     const combined = decodeBase64(encrypted);
 
+    console.log('[Encryption] Decoded combined length:', combined.length, 'bytes');
     // Extract IV and ciphertext
     const iv = combined.slice(0, 12);
     const ciphertext = combined.slice(12);
+
+    console.log('[Encryption] IV length:', iv.length, 'ciphertext length:', ciphertext.length);
 
     // Decrypt using AES-GCM
     const decrypted = await crypto.subtle.decrypt(
@@ -98,7 +107,8 @@ export async function decryptData<T>(encrypted: string, recoveryCode: string): P
     const jsonStr = new TextDecoder().decode(decrypted);
     return JSON.parse(jsonStr) as T;
   } catch (err) {
-    console.error('Decryption error:', err);
+    console.error('[Encryption] Decryption error:', err);
+    console.error('[Encryption] Error type:', err instanceof Error ? err.message : String(err));
     throw new Error('Failed to decrypt data');
   }
 }

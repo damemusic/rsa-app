@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useRSAStore } from '../stores/useRSAStore';
 import { callClaude } from '../services/ai';
 import { encryptData } from '../services/encryption';
+import { saveAIProfile } from '../services/supabase';
 import './ProfileOnboarding.css';
 
 interface ProfileQuestion {
@@ -77,6 +78,16 @@ export function ProfileOnboarding() {
       answers.forEach((answer) => {
         addScenarioResponse(answer.question, answer.answer);
       });
+
+      // Explicitly save aiProfile to database immediately
+      try {
+        const updatedStore = useRSAStore.getState();
+        const aiProfileData = JSON.stringify(updatedStore.aiProfile);
+        await saveAIProfile(currentUser.userId, aiProfileData);
+        console.log('[ProfileOnboarding] AI profile saved:', aiProfileData);
+      } catch (aiErr) {
+        console.error('[ProfileOnboarding] Failed to save AI profile:', aiErr);
+      }
 
       // Encrypt and save profile
       const encrypted = await encryptData(profile, currentUser.recoveryCode);

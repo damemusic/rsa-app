@@ -86,16 +86,24 @@ export async function encryptData(data: unknown, recoveryCode: string): Promise<
 // Decrypt data with recovery code
 export async function decryptData<T>(encrypted: string, recoveryCode: string): Promise<T> {
   try {
-    console.log('[Encryption] Decrypting data, input length:', encrypted?.length, 'type:', typeof encrypted);
+    console.log('[Encryption] Decrypting data:');
+    console.log('[Encryption]   input type:', typeof encrypted);
+    console.log('[Encryption]   input length:', encrypted?.length);
+    console.log('[Encryption]   input first 50 chars:', encrypted?.substring(0, 50));
+    console.log('[Encryption]   input last 50 chars:', encrypted?.substring(encrypted.length - 50));
+
     const key = await deriveKey(recoveryCode);
     const combined = decodeBase64(encrypted);
 
-    console.log('[Encryption] Decoded combined length:', combined.length, 'bytes');
+    console.log('[Encryption]   decoded combined length:', combined.length, 'bytes');
+    console.log('[Encryption]   decoded first 12 bytes (should be IV):', Array.from(combined.slice(0, 12)));
+
     // Extract IV and ciphertext
     const iv = combined.slice(0, 12);
     const ciphertext = combined.slice(12);
 
-    console.log('[Encryption] IV length:', iv.length, 'ciphertext length:', ciphertext.length);
+    console.log('[Encryption]   IV length:', iv.length);
+    console.log('[Encryption]   ciphertext length:', ciphertext.length);
 
     // Decrypt using AES-GCM
     const decrypted = await crypto.subtle.decrypt(
@@ -109,6 +117,7 @@ export async function decryptData<T>(encrypted: string, recoveryCode: string): P
   } catch (err) {
     console.error('[Encryption] Decryption error:', err);
     console.error('[Encryption] Error type:', err instanceof Error ? err.message : String(err));
+    console.error('[Encryption] Stack:', err instanceof Error ? err.stack : 'no stack');
     throw new Error('Failed to decrypt data');
   }
 }

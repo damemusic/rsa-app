@@ -138,6 +138,13 @@ export async function getProfile(userId: string) {
     .single();
 
   if (error && error.code !== 'PGRST116') throw error;
+
+  console.log('[getProfile] Retrieved data:');
+  console.log('[getProfile]   data exists:', !!data);
+  console.log('[getProfile]   encrypted_data:', data?.encrypted_data);
+  console.log('[getProfile]   encrypted_data type:', typeof data?.encrypted_data);
+  console.log('[getProfile]   encrypted_data length:', (data?.encrypted_data as string)?.length);
+
   return {
     encryptedData: data?.encrypted_data || null,
     aiProfile: data?.ai_profile || null,

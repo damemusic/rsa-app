@@ -12,7 +12,7 @@ import { Summary } from './components/Summary';
 import { Journal } from './components/Journal';
 import { FamilyProfile } from './components/FamilyProfile';
 import { Header } from './components/Header';
-import { getSession, onAuthStateChange, getProfile } from './services/supabase';
+import { getSession, onAuthStateChange, getProfile, getAIProfile } from './services/supabase';
 import { decryptData } from './services/encryption';
 import './App.css';
 
@@ -76,10 +76,11 @@ function App() {
           // Try to load existing profile
           try {
             console.log('[App] Loading profile');
-            const encryptedProfile = await getProfile(session.user.id);
-            console.log('[App] Profile found:', !!encryptedProfile);
-            if (encryptedProfile) {
-              const decrypted = await decryptData(encryptedProfile, recoveryCode);
+            const profileData = await getProfile(session.user.id);
+            console.log('[App] Profile found:', !!profileData.encryptedData);
+
+            if (profileData.encryptedData) {
+              const decrypted = await decryptData(profileData.encryptedData, recoveryCode);
               const { setProfile } = useRSAStore.getState();
               setProfile(decrypted as Record<string, unknown>);
               console.log('[App] Profile loaded and decrypted');
@@ -87,6 +88,37 @@ function App() {
               // No profile found, navigate to profile creation
               const { setView } = useRSAStore.getState();
               setView('profile');
+            }
+
+            // Load AI profile (scenario responses and family members) if it exists
+            if (profileData.aiProfile) {
+              try {
+                const aiProfileData = JSON.parse(profileData.aiProfile);
+                const store = useRSAStore.getState();
+                // Restore AI profile data to store
+                if (aiProfileData.familyMembers) {
+                  aiProfileData.familyMembers.forEach((member: any) => {
+                    store.addFamilyMember({
+                      name: member.name,
+                      role: member.role,
+                      relationshipQuality: member.relationshipQuality,
+                      interactionFrequency: member.interactionFrequency,
+                      anxietyTriggers: member.anxietyTriggers,
+                    });
+                  });
+                }
+                if (aiProfileData.scenarioResponses) {
+                  aiProfileData.scenarioResponses.forEach((response: any) => {
+                    store.addScenarioResponse(response.scenario, response.userResponse);
+                  });
+                }
+                if (aiProfileData.reactionPatterns) {
+                  store.updateReactionPatterns(aiProfileData.reactionPatterns);
+                }
+                console.log('[App] AI profile loaded');
+              } catch (aiErr) {
+                console.error('[App] Failed to parse AI profile:', aiErr);
+              }
             }
           } catch (profileErr) {
             console.error('[App] Failed to load profile:', profileErr);

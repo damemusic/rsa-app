@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRSAStore } from '../stores/useRSAStore';
 import { Layout } from './Layout';
 import { SCENARIO_QUESTIONS, FAMILY_ROLES, RELATIONSHIP_QUALITIES, INTERACTION_FREQUENCIES } from '../services/scenarios';
 import type { FamilyMember } from '../stores/useRSAStore';
+import { saveAIProfile } from '../services/supabase';
 import './FamilyProfile.css';
 
 type Tab = 'family' | 'scenarios';
@@ -10,6 +11,7 @@ type Tab = 'family' | 'scenarios';
 export const FamilyProfile: React.FC = () => {
   const {
     aiProfile,
+    currentUser,
     addFamilyMember,
     deleteFamilyMember,
     addScenarioResponse,
@@ -20,6 +22,27 @@ export const FamilyProfile: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [currentScenarioIdx, setCurrentScenarioIdx] = useState(0);
   const [scenarioResponses, setScenarioResponses] = useState<Record<string, string>>({});
+
+  // Save aiProfile whenever it changes
+  useEffect(() => {
+    console.log('[FamilyProfile] useEffect triggered, aiProfile:', aiProfile, 'currentUser:', currentUser);
+    const saveProfile = async () => {
+      if (!currentUser?.userId) {
+        console.log('[FamilyProfile] No currentUser, skipping save');
+        return;
+      }
+      try {
+        const aiProfileJson = JSON.stringify(aiProfile);
+        console.log('[FamilyProfile] Saving AI profile:', aiProfileJson);
+        await saveAIProfile(currentUser.userId, aiProfileJson);
+        console.log('[FamilyProfile] AI profile saved successfully');
+      } catch (err) {
+        console.error('[FamilyProfile] Failed to save AI profile:', err);
+      }
+    };
+
+    saveProfile();
+  }, [aiProfile, currentUser]);
 
   // Family form state
   const [formData, setFormData] = useState<Omit<FamilyMember, 'id'>>({

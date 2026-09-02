@@ -133,12 +133,43 @@ export async function saveProfile(userId: string, encryptedData: string) {
 export async function getProfile(userId: string) {
   const { data, error } = await supabase
     .from('rsa_profiles')
-    .select('encrypted_data')
+    .select('encrypted_data, ai_profile')
     .eq('user_id', userId)
     .single();
 
   if (error && error.code !== 'PGRST116') throw error;
-  return data?.encrypted_data || null;
+  return {
+    encryptedData: data?.encrypted_data || null,
+    aiProfile: data?.ai_profile || null,
+  };
+}
+
+export async function saveAIProfile(userId: string, aiProfileData: string) {
+  const { data, error } = await supabase
+    .from('rsa_profiles')
+    .upsert(
+      {
+        user_id: userId,
+        ai_profile: aiProfileData,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id' }
+    )
+    .select();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function getAIProfile(userId: string) {
+  const { data, error } = await supabase
+    .from('rsa_profiles')
+    .select('ai_profile')
+    .eq('user_id', userId)
+    .single();
+
+  if (error && error.code !== 'PGRST116') throw error;
+  return data?.ai_profile || null;
 }
 
 export async function setupUser(userId: string, recoveryCode: string) {

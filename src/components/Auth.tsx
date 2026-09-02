@@ -24,8 +24,8 @@ export function Auth() {
     try {
       const { session } = await signIn(email, password);
       if (session?.user) {
-        // Generate a recovery code for now (could be improved)
-        const recoveryCode = Math.random().toString(36).substring(2, 15);
+        // Derive recovery code from user ID for consistency across sessions
+        const recoveryCode = btoa(session.user.id).substring(0, 20);
         setUser(session.user.id, recoveryCode);
       }
     } catch (err) {

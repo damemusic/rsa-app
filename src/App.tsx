@@ -75,9 +75,9 @@ function App() {
 
           // Try to load existing profile
           try {
-            console.log('[App] Loading profile');
+            console.log('[App] Loading profile for user:', session.user.id);
             const profileData = await getProfile(session.user.id);
-            console.log('[App] Profile found:', !!profileData.encryptedData);
+            console.log('[App] Profile found:', !!profileData.encryptedData, 'encryptedData length:', profileData.encryptedData?.length);
 
             if (profileData.encryptedData) {
               const decrypted = await decryptData(profileData.encryptedData, recoveryCode);

@@ -219,6 +219,13 @@ app.post('/api/user/profile', async (req, res) => {
       return res.status(400).json({ error: 'Missing userId or encryptedProfile' });
     }
 
+    console.log('[Profile] Received save request:');
+    console.log('[Profile]   userId:', userId);
+    console.log('[Profile]   encryptedProfile type:', typeof encryptedProfile);
+    console.log('[Profile]   encryptedProfile length:', encryptedProfile.length);
+    console.log('[Profile]   encryptedProfile first 100 chars:', encryptedProfile.substring(0, 100));
+    console.log('[Profile]   encryptedProfile last 100 chars:', encryptedProfile.substring(Math.max(0, encryptedProfile.length - 100)));
+
     const { data, error } = await supabaseAdmin
       .from('rsa_profiles')
       .upsert(
@@ -233,6 +240,8 @@ app.post('/api/user/profile', async (req, res) => {
 
     if (error) throw error;
 
+    console.log('[Profile] Saved successfully');
+    console.log('[Profile]   returned data:', data[0]);
     res.json({ profile: data[0] });
   } catch (error) {
     console.error('Profile save error:', error);
@@ -249,6 +258,8 @@ app.get('/api/user/profile', async (req, res) => {
       return res.status(400).json({ error: 'Missing userId query parameter' });
     }
 
+    console.log('[Profile] Received fetch request for userId:', userId);
+
     const { data, error } = await supabase
       .from('rsa_profiles')
       .select('encrypted_data')
@@ -258,10 +269,18 @@ app.get('/api/user/profile', async (req, res) => {
     if (error && error.code !== 'PGRST116') throw error;
 
     if (!data) {
+      console.log('[Profile] No profile found');
       return res.json({ encryptedProfile: null });
     }
 
-    res.json({ encryptedProfile: data.encrypted_data });
+    const encrypted = data.encrypted_data;
+    console.log('[Profile] Fetched profile:');
+    console.log('[Profile]   encrypted_data type:', typeof encrypted);
+    console.log('[Profile]   encrypted_data length:', encrypted?.length);
+    console.log('[Profile]   encrypted_data first 100 chars:', encrypted?.substring(0, 100));
+    console.log('[Profile]   encrypted_data last 100 chars:', encrypted?.substring(Math.max(0, (encrypted?.length || 0) - 100)));
+
+    res.json({ encryptedProfile: encrypted });
   } catch (error) {
     console.error('Profile fetch error:', error);
     res.status(500).json({ error: error.message || 'Failed to fetch profile' });

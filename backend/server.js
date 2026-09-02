@@ -226,6 +226,19 @@ app.post('/api/user/profile', async (req, res) => {
     console.log('[Profile]   encryptedProfile first 100 chars:', encryptedProfile.substring(0, 100));
     console.log('[Profile]   encryptedProfile last 100 chars:', encryptedProfile.substring(Math.max(0, encryptedProfile.length - 100)));
 
+    // Ensure user exists in rsa_users table (required for foreign key)
+    console.log('[Profile] Creating user in rsa_users if not exists:', userId);
+    const { error: userError } = await supabaseAdmin
+      .from('rsa_users')
+      .upsert({ id: userId }, { onConflict: 'id' })
+      .select();
+
+    if (userError) {
+      console.error('[Profile] Error creating user:', userError);
+      throw userError;
+    }
+    console.log('[Profile] User ensured in rsa_users');
+
     const { data, error } = await supabaseAdmin
       .from('rsa_profiles')
       .upsert(

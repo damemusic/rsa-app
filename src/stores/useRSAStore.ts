@@ -123,8 +123,10 @@ const initialState = {
 export const useRSAStore = create<RSAStore>((set) => ({
         ...initialState,
 
-        setUser: (userId, recoveryCode) =>
-          set({ currentUser: { userId, recoveryCode }, view: 'profile' }),
+        setUser: (userId, recoveryCode) => {
+          console.log('[Store] setUser called:', userId);
+          set({ currentUser: { userId, recoveryCode } });
+        },
 
         setProfile: (profile) =>
           set({ userProfile: profile, view: 'checkin' }),

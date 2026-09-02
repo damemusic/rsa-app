@@ -66,8 +66,12 @@ function App() {
 
   useEffect(() => {
     // Load profile whenever currentUser changes (after sign-in or sign-up)
+    console.log('[App] useEffect: currentUser changed to:', currentUser);
     const loadUserProfile = async () => {
-      if (!currentUser) return;
+      if (!currentUser) {
+        console.log('[App] useEffect: currentUser is null/undefined, returning');
+        return;
+      }
 
       try {
         // Setup user in database if not already done

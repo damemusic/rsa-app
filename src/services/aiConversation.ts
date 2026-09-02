@@ -68,7 +68,10 @@ export async function sendAIMessage(
   userMessage: string,
   conversationHistory: Message[]
 ): Promise<string> {
+  console.log('[AIConversation] sendAIMessage called with:', { userMessage, historyLength: conversationHistory.length });
+
   const userContext = buildUserContext();
+  console.log('[AIConversation] User context built, length:', userContext.length);
 
   const systemPrompt = `You are a compassionate, supportive coach helping someone build resilience and emotional awareness using RSA (Rational Self-Analysis) principles. You have access to their personal profile, relationships, stress patterns, and past RSA work.
 
@@ -85,8 +88,10 @@ Guidelines:
 - Proactively suggest exercises based on their profile (e.g., if they struggle with a family member, suggest relating-focused practices)`;
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://rsa-backend-production-7b95.up.railway.app';
+  console.log('[AIConversation] Backend URL:', backendUrl);
 
   try {
+    console.log('[AIConversation] Making fetch request to /api/claude');
     const response = await fetch(`${backendUrl}/api/claude`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -103,11 +108,14 @@ Guidelines:
       }),
     });
 
+    console.log('[AIConversation] Response status:', response.status);
+
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
 
     const data = await response.json() as any;
+    console.log('[AIConversation] Response data received:', { contentLength: data.content?.length });
     return data.content || '';
   } catch (error) {
     console.error('[AIConversation] Error:', error);

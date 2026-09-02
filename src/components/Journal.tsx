@@ -1,3 +1,4 @@
+// AI Chat feature - allows users to speak with an AI assistant
 import React from 'react';
 import { useRSAStore } from '../stores/useRSAStore';
 import { Layout } from './Layout';

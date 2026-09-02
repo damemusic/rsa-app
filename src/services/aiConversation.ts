@@ -1,6 +1,4 @@
 import { useRSAStore } from '../stores/useRSAStore';
-import { callClaude } from './ai';
-import type { RSAEntry } from './rsa';
 
 export interface Message {
   role: 'user' | 'assistant';
@@ -86,17 +84,31 @@ Guidelines:
 - If they mention a specific situation, guide them through the RSA steps (Situation → Automatic thoughts → Beliefs → Emotions → Perspective shift)
 - Proactively suggest exercises based on their profile (e.g., if they struggle with a family member, suggest relating-focused practices)`;
 
-  const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [
-    ...conversationHistory.map(msg => ({
-      role: msg.role,
-      content: msg.content,
-    })),
-    { role: 'user' as const, content: userMessage },
-  ];
+  const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://rsa-backend-production-7b95.up.railway.app';
 
   try {
-    const response = await callClaude(systemPrompt, userMessage, 1000);
-    return response;
+    const response = await fetch(`${backendUrl}/api/claude`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system: systemPrompt,
+        messages: [
+          ...conversationHistory.map(msg => ({
+            role: msg.role,
+            content: msg.content,
+          })),
+          { role: 'user' as const, content: userMessage },
+        ],
+        max_tokens: 1000,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const data = await response.json() as any;
+    return data.content || '';
   } catch (error) {
     console.error('[AIConversation] Error:', error);
     return "I'm having trouble connecting right now. Please try again in a moment.";

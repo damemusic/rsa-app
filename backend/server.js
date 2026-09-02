@@ -56,43 +56,68 @@ app.post('/api/claude', async (req, res) => {
     console.log('[Claude API]   system length:', system?.length);
     console.log('[Claude API]   messages count:', messages?.length);
     console.log('[Claude API]   max_tokens:', max_tokens);
+    console.log('[Claude API] API key configured:', !!process.env.ANTHROPIC_API_KEY);
 
     if (!system || !messages) {
       return res.status(400).json({ error: 'Missing system or messages' });
     }
 
+    if (!process.env.ANTHROPIC_API_KEY) {
+      console.error('[Claude API] ERROR: ANTHROPIC_API_KEY is not set');
+      return res.status(500).json({ error: 'API key not configured' });
+    }
+
     console.log('[Claude API] Calling Anthropic API with model claude-opus-5');
-    const response = await client.messages.create({
-      model: 'claude-opus-5',
-      max_tokens: max_tokens,
-      system: system,
-      messages: messages,
-    });
+    let apiResponse;
+    try {
+      apiResponse = await client.messages.create({
+        model: 'claude-opus-5',
+        max_tokens: max_tokens,
+        system: system,
+        messages: messages,
+      });
+    } catch (apiError) {
+      console.error('[Claude API] Anthropic API call failed');
+      console.error('[Claude API]   Error:', apiError.message);
+      console.error('[Claude API]   Error status:', apiError.status);
+      console.error('[Claude API]   Full error:', apiError);
+      throw apiError;
+    }
 
     console.log('[Claude API] API response received');
-    console.log('[Claude API]   response.content type:', typeof response.content);
-    console.log('[Claude API]   response.content length:', response.content?.length);
-    console.log('[Claude API]   response.content[0]:', response.content?.[0]);
-    console.log('[Claude API]   response.stop_reason:', response.stop_reason);
+    console.log('[Claude API]   response type:', typeof apiResponse);
+    console.log('[Claude API]   response.id:', apiResponse?.id);
+    console.log('[Claude API]   response.content type:', typeof apiResponse?.content);
+    console.log('[Claude API]   response.content array length:', apiResponse?.content?.length);
+    console.log('[Claude API]   response.content[0]:', apiResponse?.content?.[0]);
+    console.log('[Claude API]   response.stop_reason:', apiResponse?.stop_reason);
+    console.log('[Claude API]   response.usage:', apiResponse?.usage);
 
     // Extract text content from response
     let content = '';
-    if (response.content && response.content.length > 0) {
-      const firstContent = response.content[0];
-      console.log('[Claude API]   firstContent type:', firstContent.type);
-      console.log('[Claude API]   firstContent.text length:', firstContent.text?.length);
+    if (apiResponse && apiResponse.content && apiResponse.content.length > 0) {
+      const firstContent = apiResponse.content[0];
+      console.log('[Claude API]   firstContent type:', firstContent?.type);
+      console.log('[Claude API]   firstContent keys:', Object.keys(firstContent || {}));
+      console.log('[Claude API]   firstContent.text:', firstContent?.text);
 
-      if (firstContent.type === 'text' && firstContent.text) {
+      if (firstContent && firstContent.type === 'text' && firstContent.text) {
         content = firstContent.text;
+        console.log('[Claude API]   Extracted text content, length:', content.length);
+      } else {
+        console.log('[Claude API]   Content is not text or text is empty');
       }
+    } else {
+      console.log('[Claude API]   Response has no content array or is empty');
     }
 
-    console.log('[Claude API] Extracted content length:', content.length);
+    console.log('[Claude API] Final content to return - length:', content.length);
     res.json({ content });
   } catch (error) {
-    console.error('[Claude API] Error:', error);
+    console.error('[Claude API] Fatal error:', error);
     console.error('[Claude API] Error message:', error.message);
     console.error('[Claude API] Error type:', error.constructor.name);
+    console.error('[Claude API] Error stack:', error.stack);
     res.status(500).json({
       error: error.message || 'Failed to call Claude API',
     });

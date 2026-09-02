@@ -300,6 +300,62 @@ app.get('/api/user/profile', async (req, res) => {
   }
 });
 
+// DEBUG: GET /api/debug/profile - Inspect raw encrypted profile
+app.get('/api/debug/profile', async (req, res) => {
+  try {
+    const userId = req.query.userId;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'Missing userId query parameter' });
+    }
+
+    console.log('[DebugProfile] Inspecting userId:', userId);
+
+    const { data, error } = await supabaseAdmin
+      .from('rsa_profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+
+    if (!data) {
+      return res.json({ found: false, message: 'No profile found' });
+    }
+
+    const encrypted = data.encrypted_data;
+    const analysisResult = {
+      found: true,
+      encrypted_data: {
+        type: typeof encrypted,
+        length: encrypted?.length,
+        isNull: encrypted === null,
+        isUndefined: encrypted === undefined,
+        isEmpty: encrypted === '',
+        firstChars: encrypted ? encrypted.substring(0, 50) : null,
+        lastChars: encrypted ? encrypted.substring(Math.max(0, encrypted.length - 50)) : null,
+        startsWithQuote: encrypted ? encrypted.startsWith('"') : null,
+        endsWithQuote: encrypted ? encrypted.endsWith('"') : null,
+        base64Pattern: encrypted ? /^[A-Za-z0-9+/=]*$/.test(encrypted) : null,
+        hexDump: encrypted ? Buffer.from(encrypted.substring(0, 48)).toString('hex') : null,
+      },
+      ai_profile: {
+        type: typeof data.ai_profile,
+        length: data.ai_profile?.length,
+        preview: data.ai_profile ? data.ai_profile.substring(0, 100) : null,
+      },
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+    };
+
+    console.log('[DebugProfile] Analysis:', JSON.stringify(analysisResult, null, 2));
+    res.json(analysisResult);
+  } catch (error) {
+    console.error('Debug profile error:', error);
+    res.status(500).json({ error: error.message || 'Failed to inspect profile' });
+  }
+});
+
 // ===== Check-in Endpoints =====
 
 // POST /api/check-in - Log a check-in

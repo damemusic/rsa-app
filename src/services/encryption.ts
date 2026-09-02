@@ -89,39 +89,32 @@ export async function decryptData<T>(encrypted: string, recoveryCode: string): P
     console.log('[Encryption] Decrypting data:');
     console.log('[Encryption]   input type:', typeof encrypted);
     console.log('[Encryption]   input length:', encrypted?.length);
-    console.log('[Encryption]   input first 50 chars:', encrypted?.substring(0, 50));
-    console.log('[Encryption]   input last 50 chars:', encrypted?.substring(encrypted.length - 50));
+
+    // Validate input
+    if (!encrypted || encrypted.length < 12) {
+      console.log('[Encryption]   ERROR: Input too short, cannot have 12-byte IV. Length:', encrypted?.length);
+      throw new Error('Encrypted data too short to contain IV');
+    }
+
+    console.log('[Encryption]   input first 50 chars:', encrypted.substring(0, 50));
+    console.log('[Encryption]   input last 50 chars:', encrypted.substring(Math.max(0, encrypted.length - 50)));
 
     // Check if data starts/ends with quotes (JSON-encoded)
-    if (encrypted && encrypted.startsWith('"') && encrypted.endsWith('"')) {
+    let toDecrypt = encrypted;
+    if (encrypted.startsWith('"') && encrypted.endsWith('"')) {
       console.log('[Encryption]   WARNING: Data appears to be JSON-encoded with quotes, stripping them');
-      const stripped = encrypted.slice(1, -1);
-      console.log('[Encryption]   Stripped first 50 chars:', stripped.substring(0, 50));
-      const key = await deriveKey(recoveryCode);
-      const combined = decodeBase64(stripped);
-      console.log('[Encryption]   decoded combined length:', combined.length, 'bytes');
-      console.log('[Encryption]   decoded first 12 bytes (should be IV):', Array.from(combined.slice(0, 12)));
+      toDecrypt = encrypted.slice(1, -1);
+      console.log('[Encryption]   Stripped first 50 chars:', toDecrypt.substring(0, 50));
+      console.log('[Encryption]   Stripped length:', toDecrypt.length);
 
-      // Extract IV and ciphertext
-      const iv = combined.slice(0, 12);
-      const ciphertext = combined.slice(12);
-
-      console.log('[Encryption]   IV length:', iv.length);
-      console.log('[Encryption]   ciphertext length:', ciphertext.length);
-
-      // Decrypt using AES-GCM
-      const decrypted = await crypto.subtle.decrypt(
-        { name: 'AES-GCM', iv },
-        key,
-        ciphertext
-      );
-
-      const jsonStr = new TextDecoder().decode(decrypted);
-      return JSON.parse(jsonStr) as T;
+      if (toDecrypt.length < 12) {
+        console.log('[Encryption]   ERROR: After stripping quotes, still too short:', toDecrypt.length);
+        throw new Error('Encrypted data too short after quote stripping');
+      }
     }
 
     const key = await deriveKey(recoveryCode);
-    const combined = decodeBase64(encrypted);
+    const combined = decodeBase64(toDecrypt);
 
     console.log('[Encryption]   decoded combined length:', combined.length, 'bytes');
     console.log('[Encryption]   decoded first 12 bytes (should be IV):', Array.from(combined.slice(0, 12)));

@@ -31,13 +31,14 @@ export function AIChat({ onClose }: AIChatProps) {
     const userMessage = input.trim();
     setInput('');
 
-    // Add user message to chat
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    // Create new messages array with user message
+    const newMessages = [...messages, { role: 'user', content: userMessage }];
+    setMessages(newMessages);
     setLoading(true);
 
     try {
       // Get AI response
-      const response = await sendAIMessage(userMessage, messages);
+      const response = await sendAIMessage(userMessage, newMessages);
       setMessages(prev => [...prev, { role: 'assistant', content: response }]);
     } catch (error) {
       console.error('[AIChat] Error:', error);

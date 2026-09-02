@@ -1,14 +1,11 @@
-// AI Chat feature - allows users to speak with an AI assistant
 import React from 'react';
 import { useRSAStore } from '../stores/useRSAStore';
 import { Layout } from './Layout';
-import { AIChat } from './AIChat';
 import './Journal.css';
 
 export const Journal: React.FC = () => {
   const { entries, deleteEntry, setView, resetEntry } = useRSAStore();
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
-  const [showAIChat, setShowAIChat] = React.useState(false);
 
   const selected = entries.find(e => e.id === selectedId);
 
@@ -150,13 +147,11 @@ export const Journal: React.FC = () => {
           <button className="button button-primary" onClick={handleNewRSA}>
             Start a New RSA
           </button>
-          <button className="button button-accent" onClick={() => setShowAIChat(true)}>
+          <button className="button button-accent" onClick={() => setView('ai-chat')}>
             💬 Speak with AI
           </button>
         </div>
       </div>
-
-      {showAIChat && <AIChat onClose={() => setShowAIChat(false)} />}
     </Layout>
   );
 };

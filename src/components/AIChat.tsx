@@ -1,12 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
+import { useRSAStore } from '../stores/useRSAStore';
 import { sendAIMessage, generateInitialGreeting, type Message } from '../services/aiConversation';
+import { Layout } from './Layout';
 import './AIChat.css';
 
-interface AIChatProps {
-  onClose: () => void;
-}
-
-export function AIChat({ onClose }: AIChatProps) {
+export function AIChat() {
+  const { setView } = useRSAStore();
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
@@ -59,15 +58,8 @@ export function AIChat({ onClose }: AIChatProps) {
   };
 
   return (
-    <div className="ai-chat-overlay">
-      <div className="ai-chat-modal">
-        <div className="ai-chat-header">
-          <h2>Speak with AI</h2>
-          <button className="ai-chat-close" onClick={onClose} aria-label="Close chat">
-            ✕
-          </button>
-        </div>
-
+    <Layout title="Speak with AI" subtitle="Chat with your AI support coach">
+      <div className="ai-chat-container">
         <div className="ai-chat-messages">
           {messages.map((msg, idx) => (
             <div key={idx} className={`message message-${msg.role}`}>
@@ -95,15 +87,23 @@ export function AIChat({ onClose }: AIChatProps) {
             disabled={loading}
             rows={3}
           />
-          <button
-            onClick={handleSend}
-            disabled={loading || !input.trim()}
-            className="ai-chat-send"
-          >
-            {loading ? 'Thinking...' : 'Send'}
-          </button>
+          <div className="ai-chat-button-group">
+            <button
+              onClick={handleSend}
+              disabled={loading || !input.trim()}
+              className="ai-chat-send"
+            >
+              {loading ? 'Thinking...' : 'Send'}
+            </button>
+            <button
+              onClick={() => setView('journal')}
+              className="button button-secondary"
+            >
+              Back
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </Layout>
   );
 }

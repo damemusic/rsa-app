@@ -11,6 +11,7 @@ import { StepFlow } from './components/StepFlow';
 import { Summary } from './components/Summary';
 import { Journal } from './components/Journal';
 import { FamilyProfile } from './components/FamilyProfile';
+import { AIChat } from './components/AIChat';
 import { Header } from './components/Header';
 import { getSession, onAuthStateChange, getProfile } from './services/supabase';
 import { decryptData } from './services/encryption';
@@ -194,6 +195,7 @@ function App() {
           {view === 'summary' && <Summary />}
           {view === 'journal' && <Journal />}
           {view === 'family' && <FamilyProfile />}
+          {view === 'ai-chat' && <AIChat />}
         </>
       )}
     </div>

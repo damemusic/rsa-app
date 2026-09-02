@@ -273,7 +273,7 @@ app.get('/api/user/profile', async (req, res) => {
 
     console.log('[Profile] Received fetch request for userId:', userId);
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('rsa_profiles')
       .select('encrypted_data')
       .eq('user_id', userId)

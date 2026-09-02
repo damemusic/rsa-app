@@ -29,7 +29,7 @@ export function ProfileOnboarding() {
   );
   const [loading, setLoading] = useState(false);
   const [profileGenerated, setProfileGenerated] = useState<Record<string, unknown> | null>(null);
-  const { currentUser, setProfile } = useRSAStore();
+  const { currentUser, setProfile, addScenarioResponse } = useRSAStore();
 
   const current = answers[currentStep];
 
@@ -72,6 +72,11 @@ export function ProfileOnboarding() {
       }
 
       setProfileGenerated(profile);
+
+      // Add questionnaire responses to aiProfile for persistence
+      answers.forEach((answer) => {
+        addScenarioResponse(answer.question, answer.answer);
+      });
 
       // Encrypt and save profile
       const encrypted = await encryptData(profile, currentUser.recoveryCode);

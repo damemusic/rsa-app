@@ -94,18 +94,18 @@ app.post('/api/claude', async (req, res) => {
     console.log('[Claude API]   response.usage:', apiResponse?.usage);
 
     // Extract text content from response
+    // Note: Claude Opus 5 may return extended thinking format with thinking block first
     let content = '';
     if (apiResponse && apiResponse.content && apiResponse.content.length > 0) {
-      const firstContent = apiResponse.content[0];
-      console.log('[Claude API]   firstContent type:', firstContent?.type);
-      console.log('[Claude API]   firstContent keys:', Object.keys(firstContent || {}));
-      console.log('[Claude API]   firstContent.text:', firstContent?.text);
+      // Find the text block (may not be first if thinking is enabled)
+      const textBlock = apiResponse.content.find(block => block.type === 'text');
 
-      if (firstContent && firstContent.type === 'text' && firstContent.text) {
-        content = firstContent.text;
+      if (textBlock && textBlock.text) {
+        content = textBlock.text;
         console.log('[Claude API]   Extracted text content, length:', content.length);
       } else {
-        console.log('[Claude API]   Content is not text or text is empty');
+        console.log('[Claude API]   No text block found in response');
+        console.log('[Claude API]   Content blocks:', apiResponse.content.map((b, i) => `[${i}] type=${b.type}`).join(', '));
       }
     } else {
       console.log('[Claude API]   Response has no content array or is empty');

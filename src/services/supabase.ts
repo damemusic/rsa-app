@@ -145,8 +145,23 @@ export async function getProfile(userId: string) {
   console.log('[getProfile]   encrypted_data type:', typeof data?.encrypted_data);
   console.log('[getProfile]   encrypted_data length:', (data?.encrypted_data as string)?.length);
 
+  // Filter out encrypted_data that's too short to be valid (must contain at least 12-byte IV + some ciphertext)
+  // Valid base64 for 12 bytes = 16 chars (12 * 4/3), so minimum viable encrypted data should be much longer
+  const encryptedData = data?.encrypted_data;
+  if (encryptedData && typeof encryptedData === 'string' && encryptedData.length >= 20) {
+    console.log('[getProfile]   encrypted_data looks valid');
+    return {
+      encryptedData,
+      aiProfile: data?.ai_profile || null,
+    };
+  }
+
+  if (encryptedData) {
+    console.log('[getProfile]   WARNING: encrypted_data exists but appears malformed or too short, treating as null');
+  }
+
   return {
-    encryptedData: data?.encrypted_data || null,
+    encryptedData: null,
     aiProfile: data?.ai_profile || null,
   };
 }

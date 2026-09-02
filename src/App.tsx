@@ -42,90 +42,6 @@ function App() {
           const recoveryCode = btoa(session.user.id).substring(0, 20);
           console.log('[App] Setting user:', session.user.id);
           setUser(session.user.id, recoveryCode);
-
-          // Setup user in database if not already done
-          try {
-            console.log('[App] Calling /api/user/setup with backend URL:', import.meta.env.VITE_BACKEND_URL);
-            const backendUrl = import.meta.env.VITE_BACKEND_URL;
-            if (!backendUrl) {
-              console.error('[App] VITE_BACKEND_URL is not set!');
-              throw new Error('Backend URL not configured');
-            }
-            const setupUrl = `${backendUrl}/api/user/setup`;
-            console.log('[App] Setup URL:', setupUrl);
-            const setupResponse = await fetch(setupUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                userId: session.user.id,
-                recoveryCode,
-              }),
-            });
-            console.log('[App] /api/user/setup responded:', setupResponse.status);
-            if (!setupResponse.ok) {
-              const error = await setupResponse.json();
-              console.error('[App] /api/user/setup error:', error);
-            } else {
-              console.log('[App] /api/user/setup success');
-            }
-          } catch (setupErr) {
-            console.error('[App] /api/user/setup exception:', setupErr);
-            // Non-fatal, continue anyway
-          }
-
-          // Try to load existing profile
-          try {
-            console.log('[App] Loading profile for user:', session.user.id);
-            const profileData = await getProfile(session.user.id);
-            console.log('[App] Profile found:', !!profileData.encryptedData, 'encryptedData length:', profileData.encryptedData?.length);
-
-            if (profileData.encryptedData) {
-              const decrypted = await decryptData(profileData.encryptedData, recoveryCode);
-              const { setProfile } = useRSAStore.getState();
-              setProfile(decrypted as Record<string, unknown>);
-              console.log('[App] Profile loaded and decrypted');
-            } else {
-              // No profile found, navigate to profile creation
-              const { setView } = useRSAStore.getState();
-              setView('profile');
-            }
-
-            // Load AI profile (scenario responses and family members) if it exists
-            if (profileData.aiProfile) {
-              try {
-                const aiProfileData = JSON.parse(profileData.aiProfile);
-                const store = useRSAStore.getState();
-                // Restore AI profile data to store
-                if (aiProfileData.familyMembers) {
-                  aiProfileData.familyMembers.forEach((member: any) => {
-                    store.addFamilyMember({
-                      name: member.name,
-                      role: member.role,
-                      relationshipQuality: member.relationshipQuality,
-                      interactionFrequency: member.interactionFrequency,
-                      anxietyTriggers: member.anxietyTriggers,
-                    });
-                  });
-                }
-                if (aiProfileData.scenarioResponses) {
-                  aiProfileData.scenarioResponses.forEach((response: any) => {
-                    store.addScenarioResponse(response.scenario, response.userResponse);
-                  });
-                }
-                if (aiProfileData.reactionPatterns) {
-                  store.updateReactionPatterns(aiProfileData.reactionPatterns);
-                }
-                console.log('[App] AI profile loaded');
-              } catch (aiErr) {
-                console.error('[App] Failed to parse AI profile:', aiErr);
-              }
-            }
-          } catch (profileErr) {
-            console.error('[App] Failed to load profile:', profileErr);
-            // Navigate to profile creation if decryption fails (e.g., old format incompatible)
-            const { setView } = useRSAStore.getState();
-            setView('profile');
-          }
         }
       } catch (err) {
         console.error('[App] Failed to check auth:', err);
@@ -147,6 +63,103 @@ function App() {
       subscription?.unsubscribe?.();
     };
   }, [setUser, clearUser]);
+
+  useEffect(() => {
+    // Load profile whenever currentUser changes (after sign-in or sign-up)
+    const loadUserProfile = async () => {
+      if (!currentUser) return;
+
+      try {
+        // Setup user in database if not already done
+        try {
+          console.log('[App] Calling /api/user/setup with backend URL:', import.meta.env.VITE_BACKEND_URL);
+          const backendUrl = import.meta.env.VITE_BACKEND_URL;
+          if (!backendUrl) {
+            console.error('[App] VITE_BACKEND_URL is not set!');
+            throw new Error('Backend URL not configured');
+          }
+          const setupUrl = `${backendUrl}/api/user/setup`;
+          console.log('[App] Setup URL:', setupUrl);
+          const setupResponse = await fetch(setupUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: currentUser.userId,
+              recoveryCode: currentUser.recoveryCode,
+            }),
+          });
+          console.log('[App] /api/user/setup responded:', setupResponse.status);
+          if (!setupResponse.ok) {
+            const error = await setupResponse.json();
+            console.error('[App] /api/user/setup error:', error);
+          } else {
+            console.log('[App] /api/user/setup success');
+          }
+        } catch (setupErr) {
+          console.error('[App] /api/user/setup exception:', setupErr);
+          // Non-fatal, continue anyway
+        }
+
+        // Try to load existing profile
+        try {
+          console.log('[App] Loading profile for user:', currentUser.userId);
+          const profileData = await getProfile(currentUser.userId);
+          console.log('[App] Profile found:', !!profileData.encryptedData, 'encryptedData length:', profileData.encryptedData?.length);
+
+          if (profileData.encryptedData) {
+            const decrypted = await decryptData(profileData.encryptedData, currentUser.recoveryCode);
+            const { setProfile } = useRSAStore.getState();
+            setProfile(decrypted as Record<string, unknown>);
+            console.log('[App] Profile loaded and decrypted');
+          } else {
+            // No profile found, navigate to profile creation
+            const { setView } = useRSAStore.getState();
+            setView('profile');
+          }
+
+          // Load AI profile (scenario responses and family members) if it exists
+          if (profileData.aiProfile) {
+            try {
+              const aiProfileData = JSON.parse(profileData.aiProfile);
+              const store = useRSAStore.getState();
+              // Restore AI profile data to store
+              if (aiProfileData.familyMembers) {
+                aiProfileData.familyMembers.forEach((member: any) => {
+                  store.addFamilyMember({
+                    name: member.name,
+                    role: member.role,
+                    relationshipQuality: member.relationshipQuality,
+                    interactionFrequency: member.interactionFrequency,
+                    anxietyTriggers: member.anxietyTriggers,
+                  });
+                });
+              }
+              if (aiProfileData.scenarioResponses) {
+                aiProfileData.scenarioResponses.forEach((response: any) => {
+                  store.addScenarioResponse(response.scenario, response.userResponse);
+                });
+              }
+              if (aiProfileData.reactionPatterns) {
+                store.updateReactionPatterns(aiProfileData.reactionPatterns);
+              }
+              console.log('[App] AI profile loaded');
+            } catch (aiErr) {
+              console.error('[App] Failed to parse AI profile:', aiErr);
+            }
+          }
+        } catch (profileErr) {
+          console.error('[App] Failed to load profile:', profileErr);
+          // Navigate to profile creation if decryption fails (e.g., old format incompatible)
+          const { setView } = useRSAStore.getState();
+          setView('profile');
+        }
+      } catch (err) {
+        console.error('[App] Failed to load user profile:', err);
+      }
+    };
+
+    loadUserProfile();
+  }, [currentUser]);
 
   if (loading) {
     return (

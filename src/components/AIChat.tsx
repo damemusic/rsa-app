@@ -32,7 +32,7 @@ export function AIChat({ onClose }: AIChatProps) {
     setInput('');
 
     // Create new messages array with user message
-    const newMessages = [...messages, { role: 'user', content: userMessage }];
+    const newMessages: Message[] = [...messages, { role: 'user', content: userMessage }];
     setMessages(newMessages);
     setLoading(true);
 

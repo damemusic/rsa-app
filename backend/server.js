@@ -587,6 +587,56 @@ app.get('/api/po/compliance/:userId', async (req, res) => {
   }
 });
 
+// ADMIN: POST /api/admin/cleanup-profiles - Remove malformed profile data
+app.post('/api/admin/cleanup-profiles', async (req, res) => {
+  try {
+    console.log('[CleanupProfiles] Starting cleanup of malformed profiles');
+
+    // Fetch all profiles and filter for malformed data
+    const { data: allProfiles, error: fetchError } = await supabaseAdmin
+      .from('rsa_profiles')
+      .select('user_id, encrypted_data');
+
+    if (fetchError) {
+      console.error('[CleanupProfiles] Error fetching profiles:', fetchError);
+      throw fetchError;
+    }
+
+    const malformedUserIds = allProfiles
+      .filter(profile => {
+        const ed = profile.encrypted_data;
+        return !ed || ed === '' || ed.length < 20 || (ed && ed.startsWith('"') && ed.endsWith('"'));
+      })
+      .map(p => p.user_id);
+
+    console.log('[CleanupProfiles] Found', malformedUserIds.length, 'malformed profiles:', malformedUserIds);
+
+    // Delete malformed profiles
+    if (malformedUserIds.length > 0) {
+      const { error: deleteError } = await supabaseAdmin
+        .from('rsa_profiles')
+        .delete()
+        .in('user_id', malformedUserIds);
+
+      if (deleteError) {
+        console.error('[CleanupProfiles] Error deleting profiles:', deleteError);
+        throw deleteError;
+      }
+    }
+
+    console.log('[CleanupProfiles] Cleanup complete, deleted', malformedUserIds.length, 'profiles');
+    res.json({
+      success: true,
+      message: `Removed ${malformedUserIds.length} malformed profiles`,
+      cleanedUserIds: malformedUserIds,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Cleanup error:', error);
+    res.status(500).json({ error: error.message || 'Failed to cleanup profiles' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Backend server running on port ${PORT}`);
 });

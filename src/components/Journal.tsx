@@ -1,11 +1,13 @@
 import React from 'react';
 import { useRSAStore } from '../stores/useRSAStore';
 import { Layout } from './Layout';
+import { AIChat } from './AIChat';
 import './Journal.css';
 
 export const Journal: React.FC = () => {
   const { entries, deleteEntry, setView, resetEntry } = useRSAStore();
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const [showAIChat, setShowAIChat] = React.useState(false);
 
   const selected = entries.find(e => e.id === selectedId);
 
@@ -140,15 +142,20 @@ export const Journal: React.FC = () => {
           </div>
         )}
 
-        <div style={{ marginTop: 'var(--space-2xl)', display: 'flex', gap: 'var(--space-md)', justifyContent: 'center' }}>
+        <div style={{ marginTop: 'var(--space-2xl)', display: 'flex', gap: 'var(--space-md)', justifyContent: 'center', flexWrap: 'wrap' }}>
           <button className="button button-secondary" onClick={handleBack}>
             Back
           </button>
           <button className="button button-primary" onClick={handleNewRSA}>
             Start a New RSA
           </button>
+          <button className="button button-accent" onClick={() => setShowAIChat(true)}>
+            💬 Speak with AI
+          </button>
         </div>
       </div>
+
+      {showAIChat && <AIChat onClose={() => setShowAIChat(false)} />}
     </Layout>
   );
 };

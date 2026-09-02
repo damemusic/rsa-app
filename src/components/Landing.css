@@ -101,6 +101,26 @@
   background-color: var(--teal-light);
 }
 
+.button-accent {
+  background-color: #8b5cf6;
+  color: white;
+}
+
+.button-accent:hover:not(:disabled) {
+  background-color: #7c3aed;
+  box-shadow: var(--shadow-md);
+}
+
+.button-ghost {
+  background-color: transparent;
+  color: var(--teal);
+  border: none;
+}
+
+.button-ghost:hover:not(:disabled) {
+  background-color: var(--teal-light);
+}
+
 .landing-crisis-banner {
   padding: var(--space-lg);
   background-color: var(--error-light, #fef2f2);

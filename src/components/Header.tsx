@@ -2,6 +2,8 @@ import { useRSAStore } from '../stores/useRSAStore';
 import { signOut } from '../services/supabase';
 import './Header.css';
 
+// Trigger rebuild
+
 export function Header() {
   const { clearUser, currentUser } = useRSAStore();
 

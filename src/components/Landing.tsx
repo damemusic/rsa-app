@@ -17,7 +17,7 @@ export const Landing: React.FC = () => {
       setView('crisis');
     } else {
       setSituation(inputValue);
-      setView('flow');
+      setView('ai-rsa');
     }
   };
 

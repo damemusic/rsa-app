@@ -42,13 +42,13 @@ export function AIGuidedRSA() {
   const getNextPhasePrompt = (currentPhase: ConversationStep['phase']): string => {
     const prompts: Record<ConversationStep['phase'], string> = {
       greeting: `Let's begin.`,
-      situation: `Thank you for clarifying that. Now let's separate the facts from your interpretation.\n\nWhat are the actual, verifiable facts of what happened? Try to describe only what you or another person would directly observe—just the actions and words, without any interpretation or judgment.`,
-      facts: `Good, those are the facts. Now, what thoughts or self-talk went through your mind during or after this situation? What were you telling yourself about what happened? These might be interpretations, judgments, or conclusions you drew.`,
-      beliefs: `I hear those thoughts. Many of these are beliefs we interpret as facts, but they may not be entirely true. Let's explore them further.\n\nWhat emotions did you feel in response to this situation? List the feelings—like anger, anxiety, shame, disappointment, etc.`,
-      emotions: `Thank you for sharing those emotions. Now, let's examine your beliefs from Step 2 more carefully.\n\nFor each belief, I'd like you to consider: Is this belief absolutely, 100% true? What evidence supports it? Is there any evidence against it? What's a more realistic or balanced way to think about this?\n\nTake your most important belief and tell me a more rational, balanced rewrite of it.`,
-      rewrite: `That's a powerful rewrite. Let's apply this new perspective to the situation.\n\nGiven this more balanced view, how does it change how you understand what happened? What's a new way of looking at the situation that takes into account what you've learned?`,
-      perspective: `Great insight. Now that you've worked through this analysis, let's review what we've discovered. Would you like to save this RSA entry to your journal?`,
-      review: `Ready to review your entry before saving.`,
+      situation: `What are the actual, verifiable facts of what happened? Please describe only what you or another person would directly observe—just the actions and words, without any interpretation or judgment.`,
+      facts: `Thank you. Now, what thoughts went through your mind during or right after this happened? What were you telling yourself about what occurred?`,
+      beliefs: `I understand. What emotions did you feel when this happened? Try to name specific feelings like anger, anxiety, shame, or disappointment.`,
+      emotions: `Thank you for sharing those feelings. Now let's examine your thoughts more closely. Take your strongest or most important thought and ask yourself: Is this absolutely true? What evidence supports it, and what evidence goes against it?`,
+      rewrite: `Good. Based on that evidence, what's a more balanced or realistic way to think about this thought?`,
+      perspective: `I appreciate you working through this with me. Given this new perspective, how does it change the way you see what happened?`,
+      review: `Would you like to save this entry to your journal?`,
     };
     return prompts[currentPhase];
   };
@@ -81,22 +81,16 @@ export function AIGuidedRSA() {
       }
 
       // Get AI response
-      const response = await sendAIMessage(userMessage, newMessages);
+      const response = await sendAIMessage(userMessage, newMessages, phase);
       setMessages(prev => [...prev, { role: 'assistant', content: response }]);
 
-      // Move to next phase after a few exchanges
-      // In a real implementation, you'd have more sophisticated logic here
+      // Progress to next phase automatically
       if (phase !== 'review') {
         const phases: ConversationStep['phase'][] = ['situation', 'facts', 'beliefs', 'emotions', 'rewrite', 'perspective', 'review'];
         const nextPhaseIdx = phases.indexOf(phase) + 1;
         if (nextPhaseIdx < phases.length) {
           setTimeout(() => {
-            const nextPhase = phases[nextPhaseIdx];
-            setPhase(nextPhase);
-            const nextPrompt = getNextPhasePrompt(nextPhase);
-            if (nextPrompt) {
-              setMessages(prev => [...prev, { role: 'assistant', content: nextPrompt }]);
-            }
+            setPhase(phases[nextPhaseIdx]);
           }, 1000);
         }
       }

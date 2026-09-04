@@ -66,12 +66,15 @@ function buildUserContext(): string {
 
 export async function sendAIMessage(
   userMessage: string,
-  conversationHistory: Message[]
+  conversationHistory: Message[],
+  currentPhase?: string
 ): Promise<string> {
-  console.log('[AIConversation] sendAIMessage called with:', { userMessage, historyLength: conversationHistory.length });
+  console.log('[AIConversation] sendAIMessage called with:', { userMessage, historyLength: conversationHistory.length, currentPhase });
 
   const userContext = buildUserContext();
   console.log('[AIConversation] User context built, length:', userContext.length);
+
+  const phaseGuidance = currentPhase ? `\nCurrent RSA Phase: ${currentPhase}. Ask a single focused question appropriate for this phase.` : '';
 
   const systemPrompt = `You are a compassionate, supportive coach helping someone build resilience and emotional awareness using RSA (Rational Self-Analysis) principles. You have access to their personal profile, relationships, stress patterns, and past RSA work.
 
@@ -79,13 +82,12 @@ ${userContext}
 
 Guidelines:
 - Be empathetic and non-judgmental
+- **Ask ONE focused question per response.** Wait for their answer before asking the next question. Do not bundle multiple questions together.
+- Keep responses concise and warm (1-2 paragraphs max)
 - Reference their specific situation, family relationships, or past RSA entries when relevant
-- Suggest practical RSA exercises when appropriate (e.g., "Based on your tendency to catastrophize about work, try asking yourself...")
-- Ask clarifying questions to understand their current state
-- Offer specific coping strategies tailored to what you know about them
-- Keep responses concise but warm (2-3 paragraphs max)
-- If they mention a specific situation, guide them through the RSA steps (Situation → Automatic thoughts → Beliefs → Emotions → Perspective shift)
-- Proactively suggest exercises based on their profile (e.g., if they struggle with a family member, suggest relating-focused practices)`;
+- Acknowledge and validate their response before moving to the next question
+- Guide them through the RSA steps sequentially (Situation → Facts → Automatic thoughts → Beliefs → Emotions → Reframe → New perspective)
+- Match their pace - don't rush. Focus on helping them articulate one insight at a time${phaseGuidance}`;
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://rsa-backend-production-7b95.up.railway.app';
   console.log('[AIConversation] Backend URL:', backendUrl);

@@ -21,6 +21,7 @@ import './App.css';
 function App() {
   const { view, currentUser, setUser, clearUser, setView } = useRSAStore();
   const [loading, setLoading] = useState(true);
+  // Force deployment test
 
   useEffect(() => {
     // Check if we're on the reset password page

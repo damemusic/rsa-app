@@ -11,7 +11,7 @@ interface ConversationStep {
 
 export function AIGuidedRSA() {
   // AI-guided RSA: conversational approach to help users work through rational self-analysis
-  const { currentEntry, setSituation, setStepA, addBelief, setEmotions, setEffect, setAction, saveEntry, setView } = useRSAStore();
+  const { currentEntry, setStepA, addBelief, setEmotions, setEffect, saveEntry, setView } = useRSAStore();
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
@@ -40,14 +40,15 @@ export function AIGuidedRSA() {
   }, [messages]);
 
   const getNextPhasePrompt = (currentPhase: ConversationStep['phase']): string => {
-    const prompts = {
+    const prompts: Record<ConversationStep['phase'], string> = {
+      greeting: `Let's begin.`,
       situation: `Thank you for clarifying that. Now let's separate the facts from your interpretation.\n\nWhat are the actual, verifiable facts of what happened? Try to describe only what you or another person would directly observe—just the actions and words, without any interpretation or judgment.`,
       facts: `Good, those are the facts. Now, what thoughts or self-talk went through your mind during or after this situation? What were you telling yourself about what happened? These might be interpretations, judgments, or conclusions you drew.`,
       beliefs: `I hear those thoughts. Many of these are beliefs we interpret as facts, but they may not be entirely true. Let's explore them further.\n\nWhat emotions did you feel in response to this situation? List the feelings—like anger, anxiety, shame, disappointment, etc.`,
       emotions: `Thank you for sharing those emotions. Now, let's examine your beliefs from Step 2 more carefully.\n\nFor each belief, I'd like you to consider: Is this belief absolutely, 100% true? What evidence supports it? Is there any evidence against it? What's a more realistic or balanced way to think about this?\n\nTake your most important belief and tell me a more rational, balanced rewrite of it.`,
       rewrite: `That's a powerful rewrite. Let's apply this new perspective to the situation.\n\nGiven this more balanced view, how does it change how you understand what happened? What's a new way of looking at the situation that takes into account what you've learned?`,
-      perspective: ``,
-      review: ``,
+      perspective: `Great insight. Now that you've worked through this analysis, let's review what we've discovered. Would you like to save this RSA entry to your journal?`,
+      review: `Ready to review your entry before saving.`,
     };
     return prompts[currentPhase];
   };

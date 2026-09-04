@@ -10,6 +10,7 @@ interface ConversationStep {
 }
 
 export function AIGuidedRSA() {
+  // AI-guided RSA: conversational approach to help users work through rational self-analysis
   const { currentEntry, setSituation, setStepA, addBelief, setEmotions, setEffect, setAction, saveEntry, setView } = useRSAStore();
   const [messages, setMessages] = useState<Message[]>([
     {

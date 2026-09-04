@@ -45,9 +45,9 @@ function buildUserContext(): string {
     context += '\n';
   }
 
-  // Add recent RSA entries (last 5)
+  // Add recent check-ins (last 5)
   if (entries.length > 0) {
-    context += '**Recent RSA Practice:**\n';
+    context += '**Recent Check-Ins:**\n';
     const recent = entries.slice(-5);
     recent.forEach(entry => {
       context += `\n- Situation: ${entry.situation.substring(0, 100)}\n`;

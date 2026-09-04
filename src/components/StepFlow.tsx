@@ -107,7 +107,7 @@ export const StepFlow: React.FC = () => {
             <button
               className="button button-ghost"
               onClick={() => {
-                if (window.confirm('Discard this RSA and go back to the landing page?')) {
+                if (window.confirm('Discard this check-in and start over?')) {
                   useRSAStore.getState().reset();
                   setView('landing');
                 }

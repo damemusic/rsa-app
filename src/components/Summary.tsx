@@ -11,13 +11,13 @@ export const Summary: React.FC = () => {
     setView('journal');
   };
 
-  const handleNewRSA = () => {
+  const handleNewCheckIn = () => {
     reset();
     setView('landing');
   };
 
   return (
-    <Layout title="Your RSA — Complete" subtitle="Review before saving to your journal">
+    <Layout title="Check-In Complete" subtitle="Review before saving to Decision Log">
       <div className="summary-container">
         {/* Situation */}
         <div className="summary-section">
@@ -96,10 +96,10 @@ export const Summary: React.FC = () => {
         {/* Actions */}
         <div className="summary-actions">
           <button className="button button-primary" onClick={handleSave}>
-            Save to Journal
+            Save to Decision Log
           </button>
-          <button className="button button-secondary" onClick={handleNewRSA}>
-            Start Another RSA
+          <button className="button button-secondary" onClick={handleNewCheckIn}>
+            Start Another Check-In
           </button>
         </div>
       </div>

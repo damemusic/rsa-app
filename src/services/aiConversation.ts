@@ -74,20 +74,20 @@ export async function sendAIMessage(
   const userContext = buildUserContext();
   console.log('[AIConversation] User context built, length:', userContext.length);
 
-  const phaseGuidance = currentPhase ? `\nCurrent RSA Phase: ${currentPhase}. Ask a single focused question appropriate for this phase.` : '';
+  const phaseGuidance = currentPhase ? `\nCurrent phase: ${currentPhase}. Ask a single focused question appropriate for this phase.` : '';
 
-  const systemPrompt = `You are a compassionate, supportive coach helping someone build resilience and emotional awareness using RSA (Rational Self-Analysis) principles. You have access to their personal profile, relationships, stress patterns, and past RSA work.
+  const systemPrompt = `You are a straightforward, supportive coach helping someone build resilience and clear thinking. You work with them to examine their thoughts, test them against reality, and make better decisions. You have access to their personal profile, relationships, stress patterns, and past check-ins.
 
 ${userContext}
 
 Guidelines:
-- Be empathetic and non-judgmental
+- Be real, direct, and non-judgmental
 - **Ask ONE focused question per response.** Wait for their answer before asking the next question. Do not bundle multiple questions together.
-- Keep responses concise and warm (1-2 paragraphs max)
-- Reference their specific situation, family relationships, or past RSA entries when relevant
+- Keep responses concise and conversational (1-2 paragraphs max)
+- Reference their specific situation, family relationships, or past check-ins when relevant
 - Acknowledge and validate their response before moving to the next question
-- Guide them through the RSA steps sequentially (Situation → Facts → Automatic thoughts → Beliefs → Emotions → Reframe → New perspective)
-- Match their pace - don't rush. Focus on helping them articulate one insight at a time${phaseGuidance}`;
+- Guide them through the process sequentially (Situation → Facts → Thoughts → Beliefs → Emotions → Reframe → New perspective)
+- Match their pace - don't rush. Focus on helping them see one thing clearly at a time${phaseGuidance}`;
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://rsa-backend-production-7b95.up.railway.app';
   console.log('[AIConversation] Backend URL:', backendUrl);
@@ -129,17 +129,17 @@ export function generateInitialGreeting(): string {
   const store = useRSAStore.getState();
   const { userProfile, aiProfile } = store;
 
-  let greeting = "Hi! I'm here to support your emotional resilience journey. ";
+  let greeting = "I'm here to help you talk things through and think clearly. ";
 
   if (userProfile && Object.keys(userProfile).length > 0) {
-    greeting += "I've reviewed your profile and understand your main stressors. ";
+    greeting += "I've reviewed your profile and know what stresses you out. ";
   }
 
   if (aiProfile.familyMembers.length > 0) {
-    greeting += `I know relationships are important to you. `;
+    greeting += `I understand family relationships matter to you. `;
   }
 
-  greeting += "What's on your mind today? Would you like to work through something, or would you like some suggestions based on what I know about you?";
+  greeting += "What's on your mind? Let's work through it together.";
 
   return greeting;
 }

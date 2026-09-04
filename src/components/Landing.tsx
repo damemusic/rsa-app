@@ -32,12 +32,12 @@ export const Landing: React.FC = () => {
   };
 
   return (
-    <Layout title="Work It Through" subtitle="Rational Self-Analysis (RSA)">
+    <Layout title="My Reality Check" subtitle="Talk through what's on your mind">
       <div className="landing">
         <div className="landing-intro">
           <p>
-            The RSA worksheet helps you think through difficult situations by examining your
-            self-talk and testing it against five rules for rational thinking.
+            My Reality Check helps you think through difficult situations by examining what you're telling yourself
+            and testing it against real facts.
           </p>
           <p>
             <strong>You</strong> do the thinking. The app guides you through each step and offers
@@ -53,7 +53,7 @@ export const Landing: React.FC = () => {
 
         <div className="landing-form">
           <label htmlFor="situation-input">
-            <span className="label-text">What happened? Describe the situation in a few sentences.</span>
+            <span className="label-text">What's on your mind? Describe the situation in a few sentences.</span>
           </label>
           <textarea
             id="situation-input"
@@ -68,7 +68,7 @@ export const Landing: React.FC = () => {
             onClick={handleBegin}
             disabled={!inputValue.trim()}
           >
-            Begin
+            Start Talking
           </button>
         </div>
 

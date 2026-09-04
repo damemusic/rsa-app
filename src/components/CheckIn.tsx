@@ -112,7 +112,7 @@ export function CheckIn() {
 
             <div className="checkin-options">
               <button onClick={handleCheckIn} className="btn-primary">
-                Start Check-in (Full RSA)
+                Start My Reality Check
               </button>
               <button onClick={handleSkip} className="btn-secondary">
                 I'm Doing OK (Skip for now)

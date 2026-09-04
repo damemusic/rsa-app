@@ -15,7 +15,7 @@ export function AIGuidedRSA() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: `I'm here to help you work through this situation using the Rational Self-Analysis (RSA) process. This approach helps you examine your thoughts and test them against rational thinking.\n\nLet's start: You mentioned "${currentEntry.situation}". Can you tell me more about what happened? I want to make sure I understand the factual details—who was involved, what specifically was said or done, and what the actual outcome was.`,
+      content: `I'm here to help you talk through this situation. We'll work through what happened step by step, examine what you're telling yourself about it, and figure out what's actually true.\n\nLet's start: You mentioned "${currentEntry.situation}". Can you tell me more about what happened? I want to make sure I understand the facts—who was involved, what specifically was said or done, and what actually happened.`,
     },
   ]);
   const [input, setInput] = useState('');
@@ -41,14 +41,14 @@ export function AIGuidedRSA() {
 
   const getNextPhasePrompt = (currentPhase: ConversationStep['phase']): string => {
     const prompts: Record<ConversationStep['phase'], string> = {
-      greeting: `Let's begin.`,
-      situation: `What are the actual, verifiable facts of what happened? Please describe only what you or another person would directly observe—just the actions and words, without any interpretation or judgment.`,
-      facts: `Thank you. Now, what thoughts went through your mind during or right after this happened? What were you telling yourself about what occurred?`,
-      beliefs: `I understand. What emotions did you feel when this happened? Try to name specific feelings like anger, anxiety, shame, or disappointment.`,
-      emotions: `Thank you for sharing those feelings. Now let's examine your thoughts more closely. Take your strongest or most important thought and ask yourself: Is this absolutely true? What evidence supports it, and what evidence goes against it?`,
-      rewrite: `Good. Based on that evidence, what's a more balanced or realistic way to think about this thought?`,
-      perspective: `I appreciate you working through this with me. Given this new perspective, how does it change the way you see what happened?`,
-      review: `Would you like to save this entry to your journal?`,
+      greeting: `Let's get started.`,
+      situation: `What are the actual facts of what happened? Just describe what you or someone else would directly observe—the actions and words, without any interpretation.`,
+      facts: `Got it. Now, what thoughts went through your head during or right after this happened? What were you telling yourself?`,
+      beliefs: `I hear you. What emotions did you feel when this happened? Try to name specific feelings like anger, frustration, worry, or disappointment.`,
+      emotions: `Thanks for sharing that. Now let's look at your thoughts more closely. Take your strongest thought and ask yourself: Is this actually true? What evidence supports it, and what evidence goes against it?`,
+      rewrite: `Okay. Based on that, what's a more realistic way to think about this?`,
+      perspective: `I appreciate you working through this with me. Given this clearer perspective, how does it change the way you see what happened?`,
+      review: `Would you like to save this check-in?`,
     };
     return prompts[currentPhase];
   };
@@ -152,7 +152,7 @@ export function AIGuidedRSA() {
   };
 
   return (
-    <Layout title="Work Through This" subtitle="AI-guided Rational Self-Analysis">
+    <Layout title="Talk It Through" subtitle="AI-guided conversation for clarity">
       <div className="ai-rsa-container">
         <div className="ai-rsa-messages">
           {messages.map((msg, idx) => (
@@ -195,13 +195,13 @@ export function AIGuidedRSA() {
                   onClick={handleSaveRSA}
                   className="button button-primary"
                 >
-                  Save RSA
+                  Save Check-In
                 </button>
                 <button
                   onClick={handleEditSteps}
                   className="button button-secondary"
                 >
-                  Edit Details
+                  Review & Adjust
                 </button>
               </>
             )}

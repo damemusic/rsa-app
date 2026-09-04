@@ -10,7 +10,7 @@ export const Journal: React.FC = () => {
   const selected = entries.find(e => e.id === selectedId);
 
   const handleDelete = (id: string) => {
-    if (window.confirm('Delete this RSA? This cannot be undone.')) {
+    if (window.confirm('Delete this check-in? This cannot be undone.')) {
       deleteEntry(id);
       if (selectedId === id) {
         setSelectedId(null);
@@ -18,7 +18,7 @@ export const Journal: React.FC = () => {
     }
   };
 
-  const handleNewRSA = () => {
+  const handleNewCheckIn = () => {
     resetEntry();
     setView('landing');
   };
@@ -38,13 +38,13 @@ export const Journal: React.FC = () => {
   };
 
   return (
-    <Layout title="Your Journal" subtitle="Saved RSAs from your practice">
+    <Layout title="Decision Log" subtitle="Saved check-ins from your practice">
       <div className="journal-container">
         {entries.length === 0 ? (
           <div className="empty-journal">
-            <p>No entries yet. Complete an RSA to save it to your journal.</p>
-            <button className="button button-primary" onClick={handleNewRSA}>
-              Start a New RSA
+            <p>No entries yet. Complete a check-in to save it to your Decision Log.</p>
+            <button className="button button-primary" onClick={handleNewCheckIn}>
+              Start a New Check-In
             </button>
           </div>
         ) : (
@@ -144,8 +144,8 @@ export const Journal: React.FC = () => {
           <button className="button button-secondary" onClick={handleBack}>
             Back
           </button>
-          <button className="button button-primary" onClick={handleNewRSA}>
-            Start a New RSA
+          <button className="button button-primary" onClick={handleNewCheckIn}>
+            Start a New Check-In
           </button>
           <button className="button button-accent" onClick={() => setView('ai-chat')}>
             💬 Speak with AI

@@ -123,6 +123,7 @@ export function AIGuidedRSA() {
   const handleSaveProgress = async () => {
     if (!currentUser) return;
 
+    console.log('[AIGuidedRSA] Save Progress button clicked - phase:', phase);
     setSavingProgress(true);
     try {
       const entryToSave = {

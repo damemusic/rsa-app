@@ -420,12 +420,33 @@ app.post('/api/entries', async (req, res) => {
 
     console.log('[Entries] Saving entry for userId:', userId);
     console.log('[Entries] Entry status:', entry.status);
+    console.log('[Entries] Entry ID:', entry.id);
+
+    // Generate a UUID from the entry ID if it's not already a valid UUID
+    // UUID v4 format: 8-4-4-4-12 hexadecimal digits
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    let entryId = entry.id;
+
+    if (!uuidRegex.test(entryId)) {
+      // Convert string ID to UUID by creating a namespace-based UUID
+      // For simplicity, we'll use crypto to hash the string ID
+      const crypto = require('crypto');
+      const hash = crypto.createHash('sha256').update(entry.id + userId).digest();
+      entryId = [
+        hash.slice(0, 4).toString('hex'),
+        hash.slice(4, 6).toString('hex'),
+        hash.slice(6, 8).toString('hex'),
+        hash.slice(8, 10).toString('hex'),
+        hash.slice(10, 16).toString('hex'),
+      ].join('-');
+      console.log('[Entries] Converted ID to UUID:', entryId);
+    }
 
     const { data, error } = await supabaseAdmin
       .from('rsa_entries')
       .upsert(
         {
-          id: entry.id,
+          id: entryId,
           user_id: userId,
           encrypted_data: entry,
           status: entry.status || 'completed',

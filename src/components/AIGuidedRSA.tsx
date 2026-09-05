@@ -15,7 +15,7 @@ export function AIGuidedRSA() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: `I'm here to help you talk through this situation. We'll work through what happened step by step, examine what you're telling yourself about it, and figure out what's actually true.\n\nLet's start: You mentioned "${currentEntry.situation}". Can you tell me more about what happened? I want to make sure I understand the facts—who was involved, what specifically was said or done, and what actually happened.`,
+      content: `I'm here to help you think through this clearly. We'll talk through what happened, examine what you're telling yourself about it, and figure out what's actually true.\n\nYou mentioned: "${currentEntry.situation}"\n\nLet's dig into the facts. Can you walk me through exactly what happened? I mean the concrete details—who was involved, what specifically was said or done, and what actually occurred. Focus on just the facts for now, no interpretations.`,
     },
   ]);
   const [input, setInput] = useState('');

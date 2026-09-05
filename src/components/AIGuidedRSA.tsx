@@ -13,7 +13,7 @@ interface ConversationStep {
 export function AIGuidedRSA() {
   // AI-guided RSA: conversational approach to help users work through rational self-analysis
   // Includes save progress, confirmation phase, and in-progress tracking features
-  const { currentEntry, currentUser, setSituation, setStepA, addBelief, setEmotions, setEffect, saveEntry, setView } = useRSAStore();
+  const { currentEntry, currentUser, setSituation, setStepA, addBelief, setEmotions, setEffect, setSavedEntry, setView } = useRSAStore();
   const [messages, setMessages] = useState<Message[]>(
     currentEntry.situation
       ? [
@@ -161,16 +161,38 @@ export function AIGuidedRSA() {
     }
   };
 
-  const handleSaveRSA = () => {
-    // Ensure any beliefs collected are added to store
-    if (phaseData.beliefs.length > 0) {
-      phaseData.beliefs.forEach(belief => {
-        if (belief.trim()) addBelief(belief);
-      });
-    }
+  const handleSaveRSA = async () => {
+    if (!currentUser) return;
 
-    // Save the entry to database
-    saveEntry();
+    try {
+      // Ensure any beliefs collected are added to store
+      if (phaseData.beliefs.length > 0) {
+        phaseData.beliefs.forEach(belief => {
+          if (belief.trim()) addBelief(belief);
+        });
+      }
+
+      const entryToSave = {
+        ...currentEntry,
+        situation: phaseData.situation || currentEntry.situation,
+        a: phaseData.facts || currentEntry.a,
+        emotions: phaseData.emotions.length > 0 ? phaseData.emotions : currentEntry.emotions,
+        effect: phaseData.perspective || currentEntry.effect,
+      };
+
+      await saveProgressEntry(
+        currentUser.userId,
+        entryToSave,
+        currentUser.recoveryCode,
+        'completed'
+      );
+
+      setSavedEntry();
+      setView('journal');
+    } catch (error) {
+      console.error('[AIGuidedRSA] Error saving entry:', error);
+      alert('Failed to save check-in. Please try again.');
+    }
   };
 
   const handleEditSteps = () => {

@@ -233,7 +233,7 @@ export const useRSAStore = create<RSAStore>((set) => ({
 
         setView: (view) => set({ view }),
 
-        saveEntry: (userId: string, recoveryCode: string) => {
+        saveEntry: (_userId: string, _recoveryCode: string) => {
           // This will be called from Summary.tsx which handles async
           // For now, just return a resolved promise
           return Promise.resolve();

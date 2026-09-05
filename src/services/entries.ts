@@ -1,19 +1,32 @@
 import type { RSAEntry } from './rsa';
+import { encryptData } from './encryption';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
 
-export async function saveProgressEntry(userId: string, entry: RSAEntry, status: 'in_progress' | 'completed' = 'in_progress'): Promise<RSAEntry> {
+export async function saveProgressEntry(
+  userId: string,
+  entry: RSAEntry,
+  recoveryCode: string,
+  status: 'in_progress' | 'completed' = 'in_progress'
+): Promise<RSAEntry> {
   try {
+    const entryToSave = {
+      ...entry,
+      status,
+      lastUpdated: Date.now(),
+    };
+
+    console.log('[entries] Encrypting entry before save...');
+    const encryptedData = await encryptData(entryToSave, recoveryCode);
+    console.log('[entries] Entry encrypted, sending to backend');
+
     const response = await fetch(`${BACKEND_URL}/api/entries`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         userId,
-        entry: {
-          ...entry,
-          status,
-          lastUpdated: Date.now(),
-        },
+        encryptedData,
+        status,
       }),
     });
 
@@ -21,7 +34,9 @@ export async function saveProgressEntry(userId: string, entry: RSAEntry, status:
       throw new Error(`Failed to save entry: ${response.statusText}`);
     }
 
-    return await response.json();
+    const result = await response.json();
+    console.log('[entries] Entry saved successfully:', result.entry?.id);
+    return result.entry;
   } catch (error) {
     console.error('[entries] Error saving progress:', error);
     throw error;

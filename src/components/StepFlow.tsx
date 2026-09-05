@@ -87,9 +87,13 @@ export const StepFlow: React.FC = () => {
 
         {/* Navigation buttons */}
         <div className="step-navigation">
-          {step > 0 && (
+          {step > 0 ? (
             <button className="button button-secondary" onClick={previousStep}>
               ← Previous
+            </button>
+          ) : (
+            <button className="button button-secondary" onClick={() => setView('checkin')}>
+              ← Cancel
             </button>
           )}
 

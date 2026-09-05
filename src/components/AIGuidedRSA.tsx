@@ -133,7 +133,12 @@ export function AIGuidedRSA() {
         effect: phaseData.perspective || currentEntry.effect,
       };
 
-      await saveProgressEntry(currentUser.userId, entryToSave, 'in_progress');
+      await saveProgressEntry(
+        currentUser.userId,
+        entryToSave,
+        currentUser.recoveryCode,
+        'in_progress'
+      );
       alert('Progress saved! You can resume this check-in later.');
       setView('checkin');
     } catch (error) {

@@ -1,14 +1,36 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useRSAStore } from '../stores/useRSAStore';
+import { saveProgressEntry } from '../services/entries';
 import { Layout } from './Layout';
 import './Summary.css';
 
 export const Summary: React.FC = () => {
-  const { currentEntry, setView, saveEntry, reset } = useRSAStore();
+  const { currentEntry, setView, setSavedEntry, reset, currentUser } = useRSAStore();
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string>('');
 
-  const handleSave = () => {
-    saveEntry();
-    setView('journal');
+  const handleSave = async () => {
+    if (!currentUser) {
+      setError('User not logged in');
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+
+    try {
+      console.log('[Summary] Saving entry with encryption...');
+      await saveProgressEntry(currentUser.userId, currentEntry, currentUser.recoveryCode, 'completed');
+
+      console.log('[Summary] Entry saved successfully');
+      setSavedEntry();
+      setView('journal');
+    } catch (err) {
+      console.error('[Summary] Error saving entry:', err);
+      setError(err instanceof Error ? err.message : 'Failed to save entry');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleNewCheckIn = () => {
@@ -93,12 +115,27 @@ export const Summary: React.FC = () => {
           )}
         </div>
 
+        {/* Error message */}
+        {error && (
+          <div className="summary-error">
+            <p style={{ color: 'var(--brick)' }}>Error: {error}</p>
+          </div>
+        )}
+
         {/* Actions */}
         <div className="summary-actions">
-          <button className="button button-primary" onClick={handleSave}>
-            Save to Decision Log
+          <button
+            className="button button-primary"
+            onClick={handleSave}
+            disabled={saving}
+          >
+            {saving ? 'Saving...' : 'Save to Decision Log'}
           </button>
-          <button className="button button-secondary" onClick={handleNewCheckIn}>
+          <button
+            className="button button-secondary"
+            onClick={handleNewCheckIn}
+            disabled={saving}
+          >
             Start Another Check-In
           </button>
         </div>

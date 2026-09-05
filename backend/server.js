@@ -413,34 +413,32 @@ app.get('/api/debug/profile', async (req, res) => {
 // POST /api/entries - Save or update an RSA entry
 app.post('/api/entries', async (req, res) => {
   try {
-    const { userId, entry } = req.body;
+    const { userId, encryptedData, status } = req.body;
 
-    if (!userId || !entry) {
-      return res.status(400).json({ error: 'Missing userId or entry' });
+    if (!userId || !encryptedData) {
+      return res.status(400).json({ error: 'Missing userId or encryptedData' });
     }
 
-    console.log('[Entries] Saving entry for userId:', userId);
-    console.log('[Entries] Entry status:', entry.status);
-    console.log('[Entries] Entry ID:', entry.id);
-
-    // Generate a UUID from the entry ID if it's not already a valid UUID
-    // UUID v4 format: 8-4-4-4-12 hexadecimal digits
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    let entryId = entry.id;
-
-    if (!uuidRegex.test(entryId)) {
-      // Convert string ID to UUID by creating a namespace-based UUID
-      // Using crypto to hash the string ID into UUID format
-      const hash = crypto.createHash('sha256').update(entry.id + userId).digest();
-      entryId = [
-        hash.slice(0, 4).toString('hex'),
-        hash.slice(4, 6).toString('hex'),
-        hash.slice(6, 8).toString('hex'),
-        hash.slice(8, 10).toString('hex'),
-        hash.slice(10, 16).toString('hex'),
-      ].join('-');
-      console.log('[Entries] Converted ID to UUID:', entryId);
+    if (typeof encryptedData !== 'string') {
+      return res.status(400).json({ error: 'encryptedData must be a base64-encoded string' });
     }
+
+    console.log('[Entries] Saving encrypted entry for userId:', userId);
+    console.log('[Entries] Entry status:', status);
+    console.log('[Entries] Encrypted data length:', encryptedData.length);
+
+    // Generate a UUID for the entry using SHA256 hash of userId + timestamp
+    const timestamp = Date.now();
+    const hash = crypto.createHash('sha256').update(userId + timestamp).digest();
+    const entryId = [
+      hash.slice(0, 4).toString('hex'),
+      hash.slice(4, 6).toString('hex'),
+      hash.slice(6, 8).toString('hex'),
+      hash.slice(8, 10).toString('hex'),
+      hash.slice(10, 16).toString('hex'),
+    ].join('-');
+
+    console.log('[Entries] Generated entry ID:', entryId);
 
     const { data, error } = await supabaseAdmin
       .from('rsa_entries')
@@ -448,8 +446,8 @@ app.post('/api/entries', async (req, res) => {
         {
           id: entryId,
           user_id: userId,
-          encrypted_data: entry,
-          status: entry.status || 'completed',
+          encrypted_data: encryptedData,
+          status: status || 'completed',
           updated_at: new Date().toISOString(),
         },
         { onConflict: 'id' }

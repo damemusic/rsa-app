@@ -93,7 +93,8 @@ interface RSAStore {
   setView: (view: View) => void;
 
   // Journal
-  saveEntry: () => void;
+  saveEntry: (userId: string, recoveryCode: string) => Promise<void>;
+  setSavedEntry: () => void;
   loadEntries: () => void;
   deleteEntry: (id: string) => void;
 
@@ -232,12 +233,18 @@ export const useRSAStore = create<RSAStore>((set) => ({
 
         setView: (view) => set({ view }),
 
-        saveEntry: () =>
+        saveEntry: (userId: string, recoveryCode: string) => {
+          // This will be called from Summary.tsx which handles async
+          // For now, just return a resolved promise
+          return Promise.resolve();
+        },
+
+        setSavedEntry: () =>
           set((state) => ({
             entries: [...state.entries, state.currentEntry],
             currentEntry: freshRSA(),
             step: 0,
-            view: 'checkin',
+            view: 'journal',
           })),
 
         loadEntries: () => {

@@ -52,8 +52,8 @@ export function CheckIn() {
 
       if (!response.ok) throw new Error('Check-in failed');
 
-      // Proceed to RSA flow
-      setView('flow');
+      // Proceed to AI-guided RSA flow
+      setView('ai-rsa');
     } catch (err) {
       console.error('Check-in error:', err);
       alert('Failed to log check-in. Please try again.');

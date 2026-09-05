@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const crypto = require('crypto');
 const Anthropic = require('@anthropic-ai/sdk').default;
 const { createClient } = require('@supabase/supabase-js');
 const jwtDecode = require('jwt-decode');
@@ -429,8 +430,7 @@ app.post('/api/entries', async (req, res) => {
 
     if (!uuidRegex.test(entryId)) {
       // Convert string ID to UUID by creating a namespace-based UUID
-      // For simplicity, we'll use crypto to hash the string ID
-      const crypto = require('crypto');
+      // Using crypto to hash the string ID into UUID format
       const hash = crypto.createHash('sha256').update(entry.id + userId).digest();
       entryId = [
         hash.slice(0, 4).toString('hex'),

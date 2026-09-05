@@ -33,7 +33,7 @@ export const Journal: React.FC = () => {
       const entry = await resumeEntry('', entryId);
       if (entry) {
         setCurrentEntry(entry);
-        setView('ai-chat');
+        setView('ai-rsa');
       } else {
         alert('Failed to resume entry.');
       }

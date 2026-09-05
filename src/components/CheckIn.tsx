@@ -12,7 +12,6 @@ interface CheckInSchedule {
 export function CheckIn() {
   const [schedule, setSchedule] = useState<CheckInSchedule | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isDue, setIsDue] = useState(false);
   const { currentUser, setView } = useRSAStore();
 
   useEffect(() => {
@@ -28,12 +27,6 @@ export function CheckIn() {
 
         const data = await response.json();
         setSchedule(data.schedule);
-
-        // Check if check-in is due
-        if (data.schedule) {
-          const nextDate = new Date(data.schedule.nextCheckInDate);
-          setIsDue(new Date() >= nextDate);
-        }
       } catch (err) {
         console.error('Schedule fetch error:', err);
       } finally {
@@ -96,65 +89,32 @@ export function CheckIn() {
   }
 
   const lastCheckInDate = schedule.lastCheckIn ? new Date(schedule.lastCheckIn) : null;
-  const nextCheckInDate = new Date(schedule.nextCheckInDate);
-  const daysUntilNext = Math.ceil((nextCheckInDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
 
   return (
     <div className="checkin-container">
       <div className="checkin-card">
         <h1>Check In</h1>
 
-        {isDue ? (
-          <>
-            <p className="checkin-message">
-              It's time for your {schedule.frequency} check-in! How are you doing?
-            </p>
+        <p className="checkin-message">
+          How are you doing? Start a reality check anytime.
+        </p>
 
-            <div className="checkin-options">
-              <button onClick={handleCheckIn} className="btn-primary">
-                Start My Reality Check
-              </button>
-              <button onClick={handleSkip} className="btn-secondary">
-                I'm Doing OK (Skip for now)
-              </button>
-              <button onClick={() => setView('family')} className="btn-secondary">
-                Manage Family Profile
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            <p className="checkin-status">
-              You're on track! Your next {schedule.frequency} check-in is in{' '}
-              <strong>{Math.max(0, daysUntilNext)} days</strong>.
-            </p>
+        <div className="checkin-options">
+          <button onClick={handleCheckIn} className="btn-primary">
+            Start My Reality Check
+          </button>
+          <button onClick={handleSkip} className="btn-secondary">
+            View Journal
+          </button>
+          <button onClick={() => setView('family')} className="btn-secondary">
+            Manage Family Profile
+          </button>
+        </div>
 
-            {lastCheckInDate && (
-              <p className="last-checkin">
-                Last check-in: {lastCheckInDate.toLocaleDateString()}
-              </p>
-            )}
-
-            <div className="checkin-stats">
-              <div className="stat">
-                <span className="label">Active Since</span>
-                <span className="value">{schedule.daysActive} days</span>
-              </div>
-              <div className="stat">
-                <span className="label">Frequency</span>
-                <span className="value">{schedule.frequency}</span>
-              </div>
-            </div>
-
-            <div className="checkin-options">
-              <button onClick={() => setView('journal')} className="btn-secondary">
-                View Journal
-              </button>
-              <button onClick={() => setView('family')} className="btn-secondary">
-                Manage Family Profile
-              </button>
-            </div>
-          </>
+        {lastCheckInDate && (
+          <p className="last-checkin" style={{ marginTop: '1rem', fontSize: '0.9rem', opacity: 0.7 }}>
+            Last check-in: {lastCheckInDate.toLocaleDateString()}
+          </p>
         )}
       </div>
     </div>

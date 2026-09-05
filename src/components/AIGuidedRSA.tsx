@@ -39,6 +39,19 @@ export function AIGuidedRSA() {
     scrollToBottom();
   }, [messages]);
 
+  // Auto-save progress after each phase to preserve user data
+  useEffect(() => {
+    if (phaseData.facts && phaseData.facts !== currentEntry.a) {
+      setStepA(phaseData.facts);
+    }
+    if (phaseData.emotions.length > 0 && phaseData.emotions !== currentEntry.emotions) {
+      setEmotions(phaseData.emotions);
+    }
+    if (phaseData.perspective && phaseData.perspective !== currentEntry.effect) {
+      setEffect(phaseData.perspective);
+    }
+  }, [phase]);
+
   const handleSend = async () => {
     if (!input.trim() || loading) return;
 
@@ -99,32 +112,14 @@ export function AIGuidedRSA() {
   };
 
   const handleSaveRSA = () => {
-    // Populate the current entry with gathered data
-    setStepA(phaseData.facts);
-
+    // Ensure any beliefs collected are added to store
     if (phaseData.beliefs.length > 0) {
       phaseData.beliefs.forEach(belief => {
         if (belief.trim()) addBelief(belief);
       });
     }
 
-    if (phaseData.emotions.length > 0) {
-      setEmotions(phaseData.emotions);
-    }
-
-    if (phaseData.rewrite.length > 0) {
-      // Store first rewrite as example (in real implementation, link to beliefs)
-      const beliefs = currentEntry.beliefs;
-      if (beliefs.length > 0) {
-        // This would ideally update the first belief's rewrite
-      }
-    }
-
-    if (phaseData.perspective) {
-      setEffect(phaseData.perspective);
-    }
-
-    // Save the entry
+    // Save the entry to database
     saveEntry();
   };
 

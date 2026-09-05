@@ -96,6 +96,32 @@
   color: white;
 }
 
+.entry-status {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  margin-top: 4px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.entry-button.active .entry-status {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.entry-button.in-progress {
+  border-left: 4px solid var(--amber);
+}
+
+.entry-button.in-progress:hover {
+  background-color: rgba(251, 191, 36, 0.05);
+}
+
+.entry-button.completed {
+  border-left: 4px solid var(--teal);
+}
+
 .entry-detail {
   background-color: var(--slate-light);
   border-radius: var(--radius-lg);

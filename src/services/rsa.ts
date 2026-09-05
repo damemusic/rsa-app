@@ -64,6 +64,8 @@ export interface RSAEntry {
   behavior: string;
   effect: string;
   action: string;
+  status?: 'completed' | 'in_progress';
+  lastUpdated?: number;
 }
 
 const CRISIS_PATTERNS = [

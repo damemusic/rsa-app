@@ -1,17 +1,18 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRSAStore } from '../stores/useRSAStore';
 import { sendAIMessage, type Message } from '../services/aiConversation';
+import { saveProgressEntry } from '../services/entries';
 import { Layout } from './Layout';
 import './AIGuidedRSA.css';
 
 interface ConversationStep {
-  phase: 'greeting' | 'situation' | 'facts' | 'beliefs' | 'emotions' | 'rewrite' | 'perspective' | 'review';
+  phase: 'greeting' | 'situation' | 'facts' | 'beliefs' | 'emotions' | 'rewrite' | 'perspective' | 'confirmation' | 'review';
   completed: boolean;
 }
 
 export function AIGuidedRSA() {
   // AI-guided RSA: conversational approach to help users work through rational self-analysis
-  const { currentEntry, setStepA, addBelief, setEmotions, setEffect, saveEntry, setView } = useRSAStore();
+  const { currentEntry, currentUser, setStepA, addBelief, setEmotions, setEffect, saveEntry, setView } = useRSAStore();
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
@@ -20,6 +21,7 @@ export function AIGuidedRSA() {
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [savingProgress, setSavingProgress] = useState(false);
   const [phase, setPhase] = useState<ConversationStep['phase']>('situation');
   const [phaseData, setPhaseData] = useState({
     situation: currentEntry.situation,
@@ -79,13 +81,19 @@ export function AIGuidedRSA() {
         setPhaseData(prev => ({ ...prev, perspective: userMessage }));
       }
 
-      // Get AI response
-      const response = await sendAIMessage(userMessage, newMessages, phase);
+      // Get AI response based on phase
+      let response: string;
+      if (phase === 'confirmation') {
+        // For confirmation phase, ask if they agree with their new perspective
+        response = `So you're telling yourself: "${phaseData.perspective}"\n\nDoes that feel true to you? Does this new way of thinking feel right, even if it's different from what you believed before?`;
+      } else {
+        response = await sendAIMessage(userMessage, newMessages, phase);
+      }
       setMessages(prev => [...prev, { role: 'assistant', content: response }]);
 
       // Progress to next phase automatically
       if (phase !== 'review') {
-        const phases: ConversationStep['phase'][] = ['situation', 'facts', 'beliefs', 'emotions', 'rewrite', 'perspective', 'review'];
+        const phases: ConversationStep['phase'][] = ['situation', 'facts', 'beliefs', 'emotions', 'rewrite', 'perspective', 'confirmation', 'review'];
         const nextPhaseIdx = phases.indexOf(phase) + 1;
         if (nextPhaseIdx < phases.length) {
           setTimeout(() => {
@@ -108,6 +116,29 @@ export function AIGuidedRSA() {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    }
+  };
+
+  const handleSaveProgress = async () => {
+    if (!currentUser) return;
+
+    setSavingProgress(true);
+    try {
+      const entryToSave = {
+        ...currentEntry,
+        a: phaseData.facts || currentEntry.a,
+        emotions: phaseData.emotions.length > 0 ? phaseData.emotions : currentEntry.emotions,
+        effect: phaseData.perspective || currentEntry.effect,
+      };
+
+      await saveProgressEntry(currentUser.userId, entryToSave, 'in_progress');
+      alert('Progress saved! You can resume this check-in later.');
+      setView('checkin');
+    } catch (error) {
+      console.error('[AIGuidedRSA] Error saving progress:', error);
+      alert('Failed to save progress. Please try again.');
+    } finally {
+      setSavingProgress(false);
     }
   };
 
@@ -186,6 +217,13 @@ export function AIGuidedRSA() {
                 </button>
               </>
             )}
+            <button
+              onClick={handleSaveProgress}
+              disabled={savingProgress}
+              className="button button-accent"
+            >
+              {savingProgress ? 'Saving...' : 'Save Progress & Exit'}
+            </button>
             <button
               onClick={handleCancel}
               className="button button-secondary"

@@ -1,10 +1,11 @@
 import React from 'react';
 import { useRSAStore } from '../stores/useRSAStore';
+import { resumeEntry } from '../services/entries';
 import { Layout } from './Layout';
 import './Journal.css';
 
 export const Journal: React.FC = () => {
-  const { entries, deleteEntry, setView, resetEntry } = useRSAStore();
+  const { entries, deleteEntry, setView, resetEntry, setCurrentEntry } = useRSAStore();
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
 
   const selected = entries.find(e => e.id === selectedId);
@@ -25,6 +26,21 @@ export const Journal: React.FC = () => {
 
   const handleBack = () => {
     setView('checkin');
+  };
+
+  const handleResume = async (entryId: string) => {
+    try {
+      const entry = await resumeEntry('', entryId);
+      if (entry) {
+        setCurrentEntry(entry);
+        setView('ai-chat');
+      } else {
+        alert('Failed to resume entry.');
+      }
+    } catch (error) {
+      console.error('[Journal] Error resuming entry:', error);
+      alert('Failed to resume entry. Please try again.');
+    }
   };
 
   const formatDate = (timestamp: number) => {
@@ -56,10 +72,13 @@ export const Journal: React.FC = () => {
                 {entries.map(entry => (
                   <button
                     key={entry.id}
-                    className={`entry-button ${selectedId === entry.id ? 'active' : ''}`}
+                    className={`entry-button ${selectedId === entry.id ? 'active' : ''} ${entry.status === 'in_progress' ? 'in-progress' : 'completed'}`}
                     onClick={() => setSelectedId(entry.id)}
                   >
                     <div className="entry-date">{formatDate(entry.timestamp)}</div>
+                    <div className="entry-status">
+                      {entry.status === 'in_progress' ? '⏸ In Progress' : '✓ Completed'}
+                    </div>
                     <div className="entry-preview">
                       {entry.situation.substring(0, 50)}...
                     </div>
@@ -73,13 +92,30 @@ export const Journal: React.FC = () => {
               {selected ? (
                 <>
                   <div className="detail-header">
-                    <h2>{formatDate(selected.timestamp)}</h2>
-                    <button
-                      className="button button-ghost"
-                      onClick={() => handleDelete(selected.id)}
-                    >
-                      Delete
-                    </button>
+                    <div>
+                      <h2>{formatDate(selected.timestamp)}</h2>
+                      {selected.status === 'in_progress' && (
+                        <p style={{ margin: '4px 0 0 0', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                          ⏸ In Progress
+                        </p>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+                      {selected.status === 'in_progress' && (
+                        <button
+                          className="button button-primary"
+                          onClick={() => handleResume(selected.id)}
+                        >
+                          Resume
+                        </button>
+                      )}
+                      <button
+                        className="button button-ghost"
+                        onClick={() => handleDelete(selected.id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
 
                   <div className="detail-section">

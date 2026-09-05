@@ -62,6 +62,7 @@ interface RSAStore {
   clearUser: () => void;
 
   // Current RSA actions
+  setCurrentEntry: (entry: RSAEntry) => void;
   setSituation: (text: string) => void;
   setStepA: (text: string) => void;
   addBelief: (text: string) => void;
@@ -133,6 +134,9 @@ export const useRSAStore = create<RSAStore>((set) => ({
 
         clearUser: () =>
           set({ currentUser: null, userProfile: null, view: 'auth' }),
+
+        setCurrentEntry: (entry) =>
+          set({ currentEntry: entry }),
 
         setSituation: (text) =>
           set((state) => ({

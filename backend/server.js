@@ -407,6 +407,136 @@ app.get('/api/debug/profile', async (req, res) => {
   }
 });
 
+// ===== Entry Endpoints =====
+
+// POST /api/entries - Save or update an RSA entry
+app.post('/api/entries', async (req, res) => {
+  try {
+    const { userId, entry } = req.body;
+
+    if (!userId || !entry) {
+      return res.status(400).json({ error: 'Missing userId or entry' });
+    }
+
+    console.log('[Entries] Saving entry for userId:', userId);
+    console.log('[Entries] Entry status:', entry.status);
+
+    const { data, error } = await supabaseAdmin
+      .from('rsa_entries')
+      .upsert(
+        {
+          id: entry.id,
+          user_id: userId,
+          encrypted_data: entry,
+          status: entry.status || 'completed',
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'id' }
+      )
+      .select();
+
+    if (error) {
+      console.error('[Entries] Supabase error:', error);
+      throw error;
+    }
+
+    console.log('[Entries] Entry saved successfully:', data[0]?.id);
+    res.json({ entry: data[0] });
+  } catch (error) {
+    console.error('Entry save error:', error);
+    res.status(500).json({ error: error.message || 'Failed to save entry' });
+  }
+});
+
+// GET /api/entries/in-progress/:userId - Get all in-progress entries for a user
+app.get('/api/entries/in-progress/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    console.log('[Entries] Fetching in-progress entries for userId:', userId);
+
+    const { data, error } = await supabaseAdmin
+      .from('rsa_entries')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('status', 'in_progress')
+      .order('updated_at', { ascending: false });
+
+    if (error) {
+      console.error('[Entries] Supabase error:', error);
+      throw error;
+    }
+
+    console.log('[Entries] Found', data?.length || 0, 'in-progress entries');
+    res.json({ entries: data || [] });
+  } catch (error) {
+    console.error('In-progress entries fetch error:', error);
+    res.status(500).json({ error: error.message || 'Failed to fetch in-progress entries' });
+  }
+});
+
+// GET /api/entries/:entryId - Get a specific entry for resuming
+app.get('/api/entries/:entryId', async (req, res) => {
+  try {
+    const { entryId } = req.params;
+
+    console.log('[Entries] Fetching entry:', entryId);
+
+    const { data, error } = await supabaseAdmin
+      .from('rsa_entries')
+      .select('*')
+      .eq('id', entryId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      console.error('[Entries] Supabase error:', error);
+      throw error;
+    }
+
+    if (!data) {
+      console.log('[Entries] Entry not found:', entryId);
+      return res.status(404).json({ error: 'Entry not found' });
+    }
+
+    console.log('[Entries] Entry fetched:', data.id);
+    res.json({ ...data.encrypted_data, id: data.id });
+  } catch (error) {
+    console.error('Entry fetch error:', error);
+    res.status(500).json({ error: error.message || 'Failed to fetch entry' });
+  }
+});
+
+// DELETE /api/entries/:entryId - Delete an entry
+app.delete('/api/entries/:entryId', async (req, res) => {
+  try {
+    const { entryId } = req.params;
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'Missing userId' });
+    }
+
+    console.log('[Entries] Deleting entry:', entryId, 'for userId:', userId);
+
+    const { error } = await supabaseAdmin
+      .from('rsa_entries')
+      .delete()
+      .eq('id', entryId)
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('[Entries] Supabase error:', error);
+      throw error;
+    }
+
+    console.log('[Entries] Entry deleted:', entryId);
+    res.json({ success: true, message: 'Entry deleted' });
+  } catch (error) {
+    console.error('Entry delete error:', error);
+    res.status(500).json({ error: error.message || 'Failed to delete entry' });
+  }
+});
+
 // ===== Check-in Endpoints =====
 
 // POST /api/check-in - Log a check-in

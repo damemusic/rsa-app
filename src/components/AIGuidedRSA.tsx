@@ -13,13 +13,22 @@ interface ConversationStep {
 export function AIGuidedRSA() {
   // AI-guided RSA: conversational approach to help users work through rational self-analysis
   // Includes save progress, confirmation phase, and in-progress tracking features
-  const { currentEntry, currentUser, setStepA, addBelief, setEmotions, setEffect, saveEntry, setView } = useRSAStore();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: 'assistant',
-      content: `I'm here to help you think through this clearly. We'll talk through what happened, examine what you're telling yourself about it, and figure out what's actually true.\n\nYou mentioned: "${currentEntry.situation}"\n\nLet's dig into the facts. Can you walk me through exactly what happened? I mean the concrete details—who was involved, what specifically was said or done, and what actually occurred. Focus on just the facts for now, no interpretations.`,
-    },
-  ]);
+  const { currentEntry, currentUser, setSituation, setStepA, addBelief, setEmotions, setEffect, saveEntry, setView } = useRSAStore();
+  const [messages, setMessages] = useState<Message[]>(
+    currentEntry.situation
+      ? [
+          {
+            role: 'assistant',
+            content: `I'm here to help you think through this clearly. We'll talk through what happened, examine what you're telling yourself about it, and figure out what's actually true.\n\nYou mentioned: "${currentEntry.situation}"\n\nLet's dig into the facts. Can you walk me through exactly what happened? I mean the concrete details—who was involved, what specifically was said or done, and what actually occurred. Focus on just the facts for now, no interpretations.`,
+          },
+        ]
+      : [
+          {
+            role: 'assistant',
+            content: `I'm here to help you work through what's on your mind and think more clearly about it.\n\nTo start, can you tell me what situation or event is bothering you? Just describe the situation briefly—what happened, when, and who was involved. We'll dig deeper into the details together.`,
+          },
+        ]
+  );
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [savingProgress, setSavingProgress] = useState(false);
@@ -44,6 +53,9 @@ export function AIGuidedRSA() {
 
   // Auto-save progress after each phase to preserve user data
   useEffect(() => {
+    if (phaseData.situation && phaseData.situation !== currentEntry.situation) {
+      setSituation(phaseData.situation);
+    }
     if (phaseData.facts && phaseData.facts !== currentEntry.a) {
       setStepA(phaseData.facts);
     }

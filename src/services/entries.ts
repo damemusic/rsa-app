@@ -46,7 +46,7 @@ export async function getInProgressEntries(userId: string): Promise<RSAEntry[]> 
   }
 }
 
-export async function resumeEntry(userId: string, entryId: string): Promise<RSAEntry | null> {
+export async function resumeEntry(_userId: string, entryId: string): Promise<RSAEntry | null> {
   try {
     const response = await fetch(`${BACKEND_URL}/api/entries/${entryId}`, {
       method: 'GET',

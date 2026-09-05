@@ -20,7 +20,7 @@ export function Header() {
   return (
     <header className="app-header">
       <div className="header-content">
-        <h1>Clear Head</h1>
+        <h1>Real Talk</h1>
         <button onClick={handleSignOut} className="sign-out-btn">
           Sign Out
         </button>

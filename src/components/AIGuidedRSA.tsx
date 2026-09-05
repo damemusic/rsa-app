@@ -39,20 +39,6 @@ export function AIGuidedRSA() {
     scrollToBottom();
   }, [messages]);
 
-  const getNextPhasePrompt = (currentPhase: ConversationStep['phase']): string => {
-    const prompts: Record<ConversationStep['phase'], string> = {
-      greeting: `Let's get started.`,
-      situation: `What are the actual facts of what happened? Just describe what you or someone else would directly observe—the actions and words, without any interpretation.`,
-      facts: `Got it. Now, what thoughts went through your head during or right after this happened? What were you telling yourself?`,
-      beliefs: `I hear you. What emotions did you feel when this happened? Try to name specific feelings like anger, frustration, worry, or disappointment.`,
-      emotions: `Thanks for sharing that. Now let's look at your thoughts more closely. Take your strongest thought and ask yourself: Is this actually true? What evidence supports it, and what evidence goes against it?`,
-      rewrite: `Okay. Based on that, what's a more realistic way to think about this?`,
-      perspective: `I appreciate you working through this with me. Given this clearer perspective, how does it change the way you see what happened?`,
-      review: `Would you like to save this check-in?`,
-    };
-    return prompts[currentPhase];
-  };
-
   const handleSend = async () => {
     if (!input.trim() || loading) return;
 

@@ -124,11 +124,13 @@ export const FamilyProfile: React.FC = () => {
 
   const handleNextScenario = async () => {
     const currentQ = SCENARIO_QUESTIONS[currentScenarioIdx];
+    console.log('[FamilyProfile] handleNextScenario: currentQ.id=', currentQ.id, 'hasResponse=', !!scenarioResponses[currentQ.id]);
     if (scenarioResponses[currentQ.id]) {
       const userResponse = scenarioResponses[currentQ.id];
       addScenarioResponse(currentQ.description, userResponse);
 
       // Generate follow-up questions asynchronously
+      console.log('[FamilyProfile] Before gen: currentUser=', !!currentUser?.userId, 'isGenerating=', isGeneratingQuestions);
       if (currentUser?.userId && !isGeneratingQuestions) {
         setIsGeneratingQuestions(true);
         console.log('[FamilyProfile] Generating follow-up questions for:', currentQ.id);

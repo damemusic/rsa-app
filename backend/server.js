@@ -867,7 +867,8 @@ app.post('/api/ai-profile/:userId', async (req, res) => {
       .upsert(
         {
           user_id: userId,
-          ai_profile: JSON.stringify(aiProfileData),
+          ai_profile: aiProfileData,
+          encrypted_data: JSON.stringify({}),
           updated_at: new Date().toISOString(),
         },
         { onConflict: 'user_id' }

@@ -981,11 +981,16 @@ Generate 1-2 follow-up questions.`;
       throw new Error('Empty response from Claude');
     }
 
+    console.log('[GenQuestions] Claude response blocks:', response.content.map((b, i) => `[${i}] type=${b.type}, length=${b.text?.length || 0}`).join(', '));
+
     // Handle thinking blocks - find the text block (may not be first)
     const textBlock = response.content.find(block => block.type === 'text');
     if (!textBlock) {
-      console.error('[GenQuestions] No text block found in response. Blocks:', response.content.map(b => `type=${b.type}`).join(', '));
-      throw new Error('No text content in Claude response');
+      console.error('[GenQuestions] No text block found in response. Only blocks:', response.content.map(b => `type=${b.type}`).join(', '));
+      // Return empty array instead of erroring
+      console.log('[GenQuestions] Generated 0 questions (no text block)');
+      res.json({ questions: [] });
+      return;
     }
 
     console.log('[GenQuestions] Claude text response (first 500 chars):', textBlock.text.substring(0, 500));

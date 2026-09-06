@@ -146,7 +146,7 @@ export const FamilyProfile: React.FC = () => {
           userId,
           userResponse,
           currentQuestion.id,
-          aiProfile
+          aiProfile as unknown as Record<string, unknown>
         );
         console.log('[FamilyProfile] Received', newQuestions.length, 'follow-up questions');
         if (newQuestions.length > 0) {
@@ -184,7 +184,7 @@ export const FamilyProfile: React.FC = () => {
         currentUser.userId,
         '[User skipped this question]',
         currentQ?.id || '',
-        aiProfile
+        aiProfile as unknown as Record<string, unknown>
       );
       if (newQuestions.length > 0) {
         setGeneratedQuestions((prev) => [...newQuestions, ...prev].slice(0, 10));

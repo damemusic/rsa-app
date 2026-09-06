@@ -837,6 +837,105 @@ app.post('/api/admin/cleanup-profiles', async (req, res) => {
   }
 });
 
+// ===== AI Profile Endpoints (Family Members & Reaction Assessment) =====
+
+// POST /api/ai-profile/:userId - Save AI Profile
+app.post('/api/ai-profile/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { familyMembers, scenarioResponses, reactionPatterns } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'Missing userId' });
+    }
+
+    console.log('[AIProfile] Saving AI profile for userId:', userId);
+    console.log('[AIProfile] familyMembers count:', familyMembers?.length || 0);
+    console.log('[AIProfile] scenarioResponses count:', scenarioResponses?.length || 0);
+    console.log('[AIProfile] reactionPatterns count:', reactionPatterns?.length || 0);
+
+    // Ensure user exists in rsa_users table
+    const { error: userError } = await supabaseAdmin
+      .from('rsa_users')
+      .upsert({ id: userId }, { onConflict: 'id' })
+      .select();
+
+    if (userError) {
+      console.error('[AIProfile] Error creating user:', userError);
+      throw userError;
+    }
+
+    // Save AI profile to rsa_profiles table
+    const aiProfileData = {
+      familyMembers: familyMembers || [],
+      scenarioResponses: scenarioResponses || [],
+      reactionPatterns: reactionPatterns || [],
+      lastUpdated: new Date().toISOString(),
+    };
+
+    const { data, error } = await supabaseAdmin
+      .from('rsa_profiles')
+      .upsert(
+        {
+          user_id: userId,
+          ai_profile: JSON.stringify(aiProfileData),
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id' }
+      )
+      .select();
+
+    if (error) {
+      console.error('[AIProfile] Supabase error:', error);
+      throw error;
+    }
+
+    console.log('[AIProfile] AI profile saved successfully');
+    res.json({ success: true, profile: aiProfileData });
+  } catch (error) {
+    console.error('[AIProfile] Save error:', error);
+    res.status(500).json({ error: error.message || 'Failed to save AI profile' });
+  }
+});
+
+// GET /api/ai-profile/:userId - Load AI Profile
+app.get('/api/ai-profile/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'Missing userId' });
+    }
+
+    console.log('[AIProfile] Fetching AI profile for userId:', userId);
+
+    const { data, error } = await supabaseAdmin
+      .from('rsa_profiles')
+      .select('ai_profile')
+      .eq('user_id', userId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      console.error('[AIProfile] Supabase error:', error);
+      throw error;
+    }
+
+    if (!data || !data.ai_profile) {
+      console.log('[AIProfile] No AI profile found for userId:', userId);
+      return res.status(404).json({ error: 'AI profile not found' });
+    }
+
+    console.log('[AIProfile] AI profile fetched');
+    const profile = typeof data.ai_profile === 'string'
+      ? JSON.parse(data.ai_profile)
+      : data.ai_profile;
+    res.json({ profile });
+  } catch (error) {
+    console.error('[AIProfile] Fetch error:', error);
+    res.status(500).json({ error: error.message || 'Failed to fetch AI profile' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Backend server running on port ${PORT}`);
 });

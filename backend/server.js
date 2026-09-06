@@ -1026,7 +1026,12 @@ Generate 1-2 follow-up questions.`;
     }
 
     console.log('[GenQuestions] Saved', savedQuestions.length, 'questions to database');
-    res.json({ questions: savedQuestions });
+
+    // DEBUG: Return raw Claude response as well for troubleshooting
+    res.json({
+      questions: savedQuestions,
+      ...(generatedQuestions.length === 0 && { debug: { claudeText: textBlock.text.substring(0, 300) } })
+    });
   } catch (error) {
     console.error('[GenQuestions] Error:', error);
     res.status(500).json({ error: error.message || 'Failed to generate questions' });

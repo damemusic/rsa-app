@@ -936,6 +936,118 @@ app.get('/api/ai-profile/:userId', async (req, res) => {
   }
 });
 
+// POST /api/scenario-questions/generate - Generate follow-up questions
+app.post('/api/scenario-questions/generate', async (req, res) => {
+  try {
+    const { userId, userResponse, triggeredByQuestionId, userProfile } = req.body;
+
+    if (!userId || !userResponse || !triggeredByQuestionId) {
+      return res.status(400).json({ error: 'Missing userId, userResponse, or triggeredByQuestionId' });
+    }
+
+    console.log('[GenQuestions] Generating follow-up for question:', triggeredByQuestionId);
+
+    // Prepare context for Claude
+    const systemPrompt = `You are an RSA (Rational Self-Analysis) coach. Based on the user's response to a scenario question, generate 1-2 thoughtful follow-up questions that:
+1. Deepen their self-reflection
+2. Explore patterns or triggers they mentioned
+3. Are open-ended and encourage honest reflection
+4. Reference specific details from their response
+
+Return a JSON array with question objects: [{ title: string, description: string, category: string }]
+Keep titles short (5-8 words), descriptions 1-2 sentences.`;
+
+    const userPrompt = `User's response to scenario question "${triggeredByQuestionId}":
+
+"${userResponse}"
+
+${userProfile ? `User profile context: ${JSON.stringify(userProfile)}` : ''}
+
+Generate 1-2 follow-up questions.`;
+
+    console.log('[GenQuestions] Calling Claude for generation');
+    const response = await client.messages.create({
+      model: 'claude-opus-4-1-20250805',
+      max_tokens: 500,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
+    });
+
+    const content = response.content[0];
+    if (content.type !== 'text') {
+      throw new Error('Unexpected response type from Claude');
+    }
+
+    let generatedQuestions;
+    try {
+      const jsonMatch = content.text.match(/\[[\s\S]*\]/);
+      generatedQuestions = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+    } catch (parseErr) {
+      console.error('[GenQuestions] Failed to parse Claude response:', parseErr);
+      generatedQuestions = [];
+    }
+
+    console.log('[GenQuestions] Generated', generatedQuestions.length, 'questions');
+
+    // Save generated questions to database
+    const savedQuestions = [];
+    for (const q of generatedQuestions) {
+      const { data, error } = await supabaseAdmin
+        .from('scenario_questions_generated')
+        .insert({
+          scope: 'user',
+          user_id: userId,
+          title: q.title,
+          description: q.description,
+          category: q.category || 'follow_up',
+          triggered_by_question_id: triggeredByQuestionId,
+          triggered_by_user_response: userResponse.substring(0, 500), // Limit to 500 chars
+        })
+        .select();
+
+      if (!error && data && data[0]) {
+        savedQuestions.push(data[0]);
+      }
+    }
+
+    console.log('[GenQuestions] Saved', savedQuestions.length, 'questions to database');
+    res.json({ questions: savedQuestions });
+  } catch (error) {
+    console.error('[GenQuestions] Error:', error);
+    res.status(500).json({ error: error.message || 'Failed to generate questions' });
+  }
+});
+
+// GET /api/scenario-questions/cached - Get previously generated questions
+app.get('/api/scenario-questions/cached', async (req, res) => {
+  try {
+    const { userId, limit = 10 } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'Missing userId query parameter' });
+    }
+
+    console.log('[CachedQuestions] Fetching cached questions for user:', userId);
+
+    // Fetch recent generated questions for this user
+    const { data, error } = await supabaseAdmin
+      .from('scenario_questions_generated')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('scope', 'user')
+      .order('created_at', { ascending: false })
+      .limit(parseInt(limit) || 10);
+
+    if (error) throw error;
+
+    console.log('[CachedQuestions] Found', data?.length || 0, 'cached questions');
+    res.json({ questions: data || [] });
+  } catch (error) {
+    console.error('[CachedQuestions] Error:', error);
+    res.status(500).json({ error: error.message || 'Failed to fetch cached questions' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Backend server running on port ${PORT}`);
 });

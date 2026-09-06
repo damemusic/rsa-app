@@ -4,6 +4,7 @@ import { Layout } from './Layout';
 import { SCENARIO_QUESTIONS, FAMILY_ROLES, RELATIONSHIP_QUALITIES, INTERACTION_FREQUENCIES } from '../services/scenarios';
 import type { FamilyMember } from '../stores/useRSAStore';
 import { saveAIProfile } from '../services/entries';
+import { generateFollowUpQuestions, getCachedQuestions, type GeneratedQuestion } from '../services/questionGeneration';
 import './FamilyProfile.css';
 
 type Tab = 'family' | 'scenarios';
@@ -22,10 +23,20 @@ export const FamilyProfile: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [currentScenarioIdx, setCurrentScenarioIdx] = useState(0);
   const [scenarioResponses, setScenarioResponses] = useState<Record<string, string>>({});
+  const [generatedQuestions, setGeneratedQuestions] = useState<GeneratedQuestion[]>([]);
+  const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
 
-  // Auto-skip to first unanswered question when scenarios tab opens
+  // Load cached questions and auto-skip to first unanswered when scenarios tab opens
   useEffect(() => {
-    if (activeTab === 'scenarios') {
+    if (activeTab === 'scenarios' && currentUser?.userId) {
+      // Load cached generated questions
+      const loadCachedQuestions = async () => {
+        console.log('[FamilyProfile] Loading cached generated questions');
+        const cached = await getCachedQuestions(currentUser.userId, 20);
+        setGeneratedQuestions(cached);
+      };
+      loadCachedQuestions();
+
       const answeredQuestionIds = new Set(
         aiProfile.scenarioResponses.map((r: any) => {
           const q = SCENARIO_QUESTIONS.find(sq => sq.description === r.scenario);
@@ -42,7 +53,7 @@ export const FamilyProfile: React.FC = () => {
       setScenarioResponses({});
       console.log('[FamilyProfile] Auto-skip active: Jumping to question', targetIdx + 1, 'of', SCENARIO_QUESTIONS.length);
     }
-  }, [activeTab, aiProfile.scenarioResponses]);
+  }, [activeTab, aiProfile.scenarioResponses, currentUser?.userId]);
 
   // Save aiProfile whenever it changes
   useEffect(() => {
@@ -100,14 +111,39 @@ export const FamilyProfile: React.FC = () => {
     });
   };
 
-  const handleNextScenario = () => {
+  const handleNextScenario = async () => {
     const currentQ = SCENARIO_QUESTIONS[currentScenarioIdx];
     if (scenarioResponses[currentQ.id]) {
-      addScenarioResponse(currentQ.description, scenarioResponses[currentQ.id]);
+      const userResponse = scenarioResponses[currentQ.id];
+      addScenarioResponse(currentQ.description, userResponse);
+
+      // Generate follow-up questions asynchronously
+      if (currentUser?.userId && !isGeneratingQuestions) {
+        setIsGeneratingQuestions(true);
+        console.log('[FamilyProfile] Generating follow-up questions for:', currentQ.id);
+        const newQuestions = await generateFollowUpQuestions(
+          currentUser.userId,
+          userResponse,
+          currentQ.id,
+          aiProfile
+        );
+        if (newQuestions.length > 0) {
+          setGeneratedQuestions((prev) => [
+            ...newQuestions.slice(0, 2),
+            ...prev.filter((q) => q.id !== newQuestions[0]?.id),
+          ]);
+          console.log('[FamilyProfile] Added', newQuestions.length, 'follow-up questions');
+        }
+        setIsGeneratingQuestions(false);
+      }
     }
 
     if (currentScenarioIdx < SCENARIO_QUESTIONS.length - 1) {
       setCurrentScenarioIdx(currentScenarioIdx + 1);
+    } else if (generatedQuestions.length > 0) {
+      // Show generated questions after base questions
+      console.log('[FamilyProfile] Transitioning to generated questions');
+      setCurrentScenarioIdx(0);
     } else {
       // Quiz complete
       setActiveTab('family');
@@ -115,8 +151,26 @@ export const FamilyProfile: React.FC = () => {
     }
   };
 
-  const handleSkipScenario = () => {
-    if (currentScenarioIdx < SCENARIO_QUESTIONS.length - 1) {
+  const handleSkipScenario = async () => {
+    const currentQ = questionsToShow[displayIdx];
+
+    // Generate follow-up questions on skip too (helps with adaptive learning)
+    if (currentUser?.userId && !isGeneratingQuestions && !isShowingGenerated) {
+      setIsGeneratingQuestions(true);
+      console.log('[FamilyProfile] Generating follow-up after skip for:', currentQ?.id);
+      const newQuestions = await generateFollowUpQuestions(
+        currentUser.userId,
+        '[User skipped this question]',
+        currentQ?.id || '',
+        aiProfile
+      );
+      if (newQuestions.length > 0) {
+        setGeneratedQuestions((prev) => [...newQuestions, ...prev].slice(0, 10));
+      }
+      setIsGeneratingQuestions(false);
+    }
+
+    if (questionNumber < totalQuestions) {
       setCurrentScenarioIdx(currentScenarioIdx + 1);
     } else {
       setActiveTab('family');
@@ -124,8 +178,16 @@ export const FamilyProfile: React.FC = () => {
     }
   };
 
-  const currentQuestion = SCENARIO_QUESTIONS[currentScenarioIdx];
-  const currentResponse = scenarioResponses[currentQuestion.id] || '';
+  // Determine which questions to display (base or generated)
+  const isShowingGenerated = currentScenarioIdx >= SCENARIO_QUESTIONS.length;
+  const questionsToShow = isShowingGenerated ? generatedQuestions : SCENARIO_QUESTIONS;
+  const displayIdx = isShowingGenerated ? currentScenarioIdx - SCENARIO_QUESTIONS.length : currentScenarioIdx;
+  const currentQuestion = questionsToShow[displayIdx];
+  const currentResponse = scenarioResponses[currentQuestion?.id || ''] || '';
+  const totalQuestions = SCENARIO_QUESTIONS.length + generatedQuestions.length;
+  const questionNumber = isShowingGenerated
+    ? SCENARIO_QUESTIONS.length + displayIdx + 1
+    : currentScenarioIdx + 1;
 
   return (
     <Layout title="Family & AI Profile" subtitle="Help us get to know how you respond to situations">
@@ -300,12 +362,13 @@ export const FamilyProfile: React.FC = () => {
                 <div
                   className="progress-fill"
                   style={{
-                    width: `${((currentScenarioIdx + 1) / SCENARIO_QUESTIONS.length) * 100}%`,
+                    width: `${(questionNumber / totalQuestions) * 100}%`,
                   }}
                 />
               </div>
               <p className="progress-text">
-                {currentScenarioIdx + 1} of {SCENARIO_QUESTIONS.length}
+                {questionNumber} of {totalQuestions || SCENARIO_QUESTIONS.length}
+                {isShowingGenerated && <span style={{ marginLeft: '8px', fontSize: '0.9em', color: '#888' }}>(follow-ups)</span>}
               </p>
             </div>
 

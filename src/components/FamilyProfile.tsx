@@ -23,6 +23,27 @@ export const FamilyProfile: React.FC = () => {
   const [currentScenarioIdx, setCurrentScenarioIdx] = useState(0);
   const [scenarioResponses, setScenarioResponses] = useState<Record<string, string>>({});
 
+  // Auto-skip to first unanswered question when scenarios tab opens
+  useEffect(() => {
+    if (activeTab === 'scenarios') {
+      const answeredQuestionIds = new Set(
+        aiProfile.scenarioResponses.map((r: any) => {
+          const q = SCENARIO_QUESTIONS.find(sq => sq.description === r.scenario);
+          return q?.id;
+        })
+      );
+
+      const firstUnansweredIdx = SCENARIO_QUESTIONS.findIndex(
+        (q) => !answeredQuestionIds.has(q.id)
+      );
+
+      const targetIdx = firstUnansweredIdx >= 0 ? firstUnansweredIdx : 0;
+      setCurrentScenarioIdx(targetIdx);
+      setScenarioResponses({});
+      console.log('[FamilyProfile] Jumping to question', targetIdx + 1, 'of', SCENARIO_QUESTIONS.length);
+    }
+  }, [activeTab, aiProfile.scenarioResponses]);
+
   // Save aiProfile whenever it changes
   useEffect(() => {
     console.log('[FamilyProfile] useEffect triggered, aiProfile:', aiProfile, 'currentUser:', currentUser);

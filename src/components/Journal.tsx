@@ -28,7 +28,7 @@ export const Journal: React.FC = () => {
     };
 
     loadEntries();
-  }, [currentUser, setEntries]);
+  }, [currentUser?.userId, setEntries]);
 
   const selected = entries.find(e => e.id === selectedId);
 

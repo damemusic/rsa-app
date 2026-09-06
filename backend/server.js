@@ -356,14 +356,29 @@ app.post('/api/user/setup', async (req, res) => {
 app.post('/api/user/profile', async (req, res) => {
   try {
     console.log('\n[Profile] === PROFILE SAVE REQUEST START ===');
-    console.log('[Profile] Raw req.body:', JSON.stringify(req.body).substring(0, 300));
-    console.log('[Profile] Raw req.body keys:', Object.keys(req.body));
+    console.log('[Profile] Content-Type:', req.get('Content-Type'));
+    console.log('[Profile] Content-Length:', req.get('Content-Length'));
+    console.log('[Profile] req.body type:', typeof req.body);
+    console.log('[Profile] req.body is null:', req.body === null);
+    console.log('[Profile] req.body is undefined:', req.body === undefined);
+    console.log('[Profile] req.body keys:', Object.keys(req.body || {}));
+
+    // Log the full body stringify
+    try {
+      const bodyStr = JSON.stringify(req.body);
+      console.log('[Profile] JSON.stringify(req.body) length:', bodyStr.length);
+      console.log('[Profile] JSON.stringify(req.body) first 200:', bodyStr.substring(0, 200));
+    } catch (e) {
+      console.log('[Profile] Could not stringify req.body:', e.message);
+    }
+
     console.log('[Profile] req.body.encryptedProfile type:', typeof req.body.encryptedProfile);
     console.log('[Profile] req.body.encryptedProfile value:', req.body.encryptedProfile);
     if (req.body.encryptedProfile) {
       console.log('[Profile] req.body.encryptedProfile is string:', typeof req.body.encryptedProfile === 'string');
+      console.log('[Profile] req.body.encryptedProfile is Buffer:', Buffer.isBuffer(req.body.encryptedProfile));
       console.log('[Profile] req.body.encryptedProfile length:', req.body.encryptedProfile.length);
-      console.log('[Profile] req.body.encryptedProfile first 100:', req.body.encryptedProfile.substring(0, 100));
+      console.log('[Profile] req.body.encryptedProfile first 100:', String(req.body.encryptedProfile).substring(0, 100));
     }
 
     const { userId, encryptedProfile } = req.body;

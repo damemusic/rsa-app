@@ -967,7 +967,7 @@ Generate 1-2 follow-up questions.`;
 
     console.log('[GenQuestions] Calling Claude for generation');
     const response = await client.messages.create({
-      model: 'claude-opus-4-1-20250805',
+      model: 'claude-opus-4-1-20250514',
       max_tokens: 500,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],

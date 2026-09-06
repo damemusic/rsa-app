@@ -40,7 +40,7 @@ export const FamilyProfile: React.FC = () => {
       const targetIdx = firstUnansweredIdx >= 0 ? firstUnansweredIdx : 0;
       setCurrentScenarioIdx(targetIdx);
       setScenarioResponses({});
-      console.log('[FamilyProfile] Jumping to question', targetIdx + 1, 'of', SCENARIO_QUESTIONS.length);
+      console.log('[FamilyProfile] Auto-skip active: Jumping to question', targetIdx + 1, 'of', SCENARIO_QUESTIONS.length);
     }
   }, [activeTab, aiProfile.scenarioResponses]);
 

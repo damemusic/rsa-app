@@ -952,22 +952,23 @@ app.post('/api/scenario-questions/generate', async (req, res) => {
     console.log('[GenQuestions] Generating follow-up for question:', triggeredByQuestionId);
 
     // Prepare context for Claude
-    const systemPrompt = `You are an RSA (Rational Self-Analysis) coach. Based on the user's response to a scenario question, generate 1-2 thoughtful follow-up questions that:
-1. Deepen their self-reflection
-2. Explore patterns or triggers they mentioned
-3. Are open-ended and encourage honest reflection
-4. Reference specific details from their response
+    const systemPrompt = `You are an RSA (Rational Self-Analysis) coach. Generate 1-2 follow-up questions that deepen self-reflection and explore patterns in the user's response.
 
-Return a JSON array with question objects: [{ title: string, description: string, category: string }]
-Keep titles short (5-8 words), descriptions 1-2 sentences.`;
+IMPORTANT: Return ONLY a valid JSON array. Do not include any other text or explanation.
+Format: [{"title": "5-8 word title", "description": "1-2 sentence description", "category": "follow_up"}]
 
-    const userPrompt = `User's response to scenario question "${triggeredByQuestionId}":
+Guidelines:
+- Titles: short, specific, under 8 words
+- Descriptions: open-ended, reference specific details from their response, encourage honest reflection
+- category: always "follow_up"`;
+
+    const userPrompt = `User's response to the scenario question:
 
 "${userResponse}"
 
-${userProfile ? `User profile context: ${JSON.stringify(userProfile)}` : ''}
+${userProfile ? `Context about the user: ${JSON.stringify(userProfile)}` : ''}
 
-Generate 1-2 follow-up questions.`;
+Generate 1-2 follow-up questions to deepen their reflection on this response.`;
 
     console.log('[GenQuestions] Calling Claude for generation');
     const response = await client.messages.create({

@@ -8,11 +8,19 @@ export const Journal: React.FC = () => {
   const { entries, deleteEntry, setView, resetEntry, setCurrentEntry, setEntries, currentUser } = useRSAStore();
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
 
+  console.log('[Journal] Component mounted/rendered, currentUser:', currentUser?.userId);
+
   useEffect(() => {
+    console.log('[Journal] useEffect triggered, currentUser:', currentUser?.userId);
     const loadEntries = async () => {
-      if (!currentUser) return;
+      if (!currentUser) {
+        console.log('[Journal] currentUser is null, skipping load');
+        return;
+      }
       try {
+        console.log('[Journal] Loading entries for user:', currentUser.userId);
         const dbEntries = await getAllEntries(currentUser.userId);
+        console.log('[Journal] Received entries:', dbEntries.length);
         setEntries(dbEntries);
       } catch (error) {
         console.error('[Journal] Error loading entries:', error);

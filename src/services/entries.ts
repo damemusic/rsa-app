@@ -96,7 +96,7 @@ export async function deleteProgressEntry(userId: string, entryId: string): Prom
   }
 }
 
-export async function getAllEntries(userId: string): Promise<RSAEntry[]> {
+export async function getAllEntries(userId: string, recoveryCode?: string): Promise<RSAEntry[]> {
   try {
     console.log('[entries] getAllEntries called for userId:', userId);
     const response = await fetch(`${BACKEND_URL}/api/entries/in-progress/${userId}`, {
@@ -110,8 +110,43 @@ export async function getAllEntries(userId: string): Promise<RSAEntry[]> {
     }
 
     const data = await response.json();
-    const entries = Array.isArray(data) ? data : (data.entries || []);
-    console.log('[entries] getAllEntries received:', entries.length, 'entries');
+    const dbEntries = Array.isArray(data) ? data : (data.entries || []);
+    console.log('[entries] getAllEntries received:', dbEntries.length, 'db records');
+
+    // Extract RSAEntry from each database record
+    const entries: RSAEntry[] = [];
+    for (const dbEntry of dbEntries) {
+      // The encrypted_data field contains the actual RSAEntry
+      // It might be an object (already decrypted) or a string (needs decryption)
+      if (typeof dbEntry.encrypted_data === 'string') {
+        // If it's a string, it's encrypted - we'll need to decrypt it if we have recoveryCode
+        // For now, just extract the ID and status from the DB record
+        console.log('[entries] Entry has encrypted_data as string, cannot decrypt without recoveryCode');
+        entries.push({
+          id: dbEntry.id,
+          situation: '',
+          a: '',
+          beliefs: [],
+          emotions: [],
+          behavior: '',
+          effect: '',
+          action: '',
+          status: dbEntry.status as 'in_progress' | 'completed',
+          timestamp: new Date(dbEntry.created_at).getTime(),
+          lastUpdated: new Date(dbEntry.updated_at).getTime(),
+        });
+      } else if (typeof dbEntry.encrypted_data === 'object') {
+        // If it's an object, treat it as the RSAEntry directly
+        console.log('[entries] Entry has encrypted_data as object');
+        entries.push({
+          ...dbEntry.encrypted_data,
+          status: dbEntry.status as 'in_progress' | 'completed',
+          id: dbEntry.id,
+        });
+      }
+    }
+
+    console.log('[entries] getAllEntries returning:', entries.length, 'entries');
     return entries;
   } catch (error) {
     console.error('[entries] Error fetching entries:', error);

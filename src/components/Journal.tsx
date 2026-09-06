@@ -1,12 +1,26 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useRSAStore } from '../stores/useRSAStore';
-import { resumeEntry } from '../services/entries';
+import { resumeEntry, getAllEntries } from '../services/entries';
 import { Layout } from './Layout';
 import './Journal.css';
 
 export const Journal: React.FC = () => {
-  const { entries, deleteEntry, setView, resetEntry, setCurrentEntry } = useRSAStore();
+  const { entries, deleteEntry, setView, resetEntry, setCurrentEntry, setEntries, currentUser } = useRSAStore();
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
+
+  useEffect(() => {
+    const loadEntries = async () => {
+      if (!currentUser) return;
+      try {
+        const dbEntries = await getAllEntries(currentUser.userId);
+        setEntries(dbEntries);
+      } catch (error) {
+        console.error('[Journal] Error loading entries:', error);
+      }
+    };
+
+    loadEntries();
+  }, [currentUser, setEntries]);
 
   const selected = entries.find(e => e.id === selectedId);
 

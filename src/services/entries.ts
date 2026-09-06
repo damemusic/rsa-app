@@ -95,3 +95,21 @@ export async function deleteProgressEntry(userId: string, entryId: string): Prom
     throw error;
   }
 }
+
+export async function getAllEntries(userId: string): Promise<RSAEntry[]> {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/entries/user/${userId}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch entries: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('[entries] Error fetching entries:', error);
+    return [];
+  }
+}

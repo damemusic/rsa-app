@@ -96,6 +96,7 @@ interface RSAStore {
   saveEntry: (userId: string, recoveryCode: string) => Promise<void>;
   setSavedEntry: () => void;
   loadEntries: () => void;
+  setEntries: (entries: RSAEntry[]) => void;
   deleteEntry: (id: string) => void;
 
   // Reset
@@ -250,6 +251,9 @@ export const useRSAStore = create<RSAStore>((set) => ({
         loadEntries: () => {
           // Entries are already loaded from localStorage via persist middleware
         },
+
+        setEntries: (entries) =>
+          set({ entries }),
 
         deleteEntry: (id) =>
           set((state) => ({

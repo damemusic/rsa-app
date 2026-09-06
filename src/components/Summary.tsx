@@ -5,7 +5,7 @@ import { Layout } from './Layout';
 import './Summary.css';
 
 export const Summary: React.FC = () => {
-  const { currentEntry, setView, setSavedEntry, reset, currentUser } = useRSAStore();
+  const { currentEntry, setView, setCurrentEntry, setSavedEntry, reset, currentUser } = useRSAStore();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string>('');
 
@@ -20,9 +20,13 @@ export const Summary: React.FC = () => {
 
     try {
       console.log('[Summary] Saving entry with encryption...');
-      await saveProgressEntry(currentUser.userId, currentEntry, currentUser.recoveryCode, 'completed');
+      const saved = await saveProgressEntry(currentUser.userId, currentEntry, currentUser.recoveryCode, 'completed');
 
       console.log('[Summary] Entry saved successfully');
+      // Carry the database row id into the store before setSavedEntry() copies
+      // currentEntry into the log, so completing a resumed check-in updates the
+      // existing row instead of leaving an in-progress duplicate behind.
+      setCurrentEntry(saved);
       setSavedEntry();
       setView('journal');
     } catch (err) {

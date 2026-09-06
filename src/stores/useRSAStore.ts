@@ -156,6 +156,15 @@ export const useRSAStore = create<RSAStore>((set) => ({
             // would leak it into the next session and get saved under their id.
             aiProfile: emptyAIProfile(),
             aiProfileLoaded: false,
+            // Same reasoning for the journal: entries feed the AI context and
+            // the Decision Log, so they must not survive into the next session.
+            entries: [],
+            currentEntry: freshRSA(),
+            step: 0,
+            activeBeliefIdx: -1,
+            beliefSuggestions: [],
+            suggestLoading: false,
+            suggestError: '',
           }),
 
         setCurrentEntry: (entry) =>

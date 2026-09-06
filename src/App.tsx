@@ -16,7 +16,7 @@ import { AIChat } from './components/AIChat';
 import { AIGuidedRSA } from './components/AIGuidedRSA';
 import { Header } from './components/Header';
 import { getSession, onAuthStateChange, getProfile } from './services/supabase';
-import { getAIProfile } from './services/entries';
+import { getAIProfile, getAllEntries } from './services/entries';
 import { decryptData } from './services/encryption';
 import './App.css';
 
@@ -164,6 +164,20 @@ function App() {
           console.error('[App] Failed to load AI profile:', aiErr);
           // Leave aiProfileLoaded false: we do not know what is on the server,
           // so saving now could overwrite it with an empty profile.
+        }
+
+        // Load saved check-ins at sign-in. They were only ever loaded by the
+        // Journal's mount effect, so the AI's "Recent Check-Ins" context was
+        // empty for anyone who had not opened the Decision Log this session.
+        try {
+          const savedEntries = await getAllEntries(
+            currentUser.userId,
+            currentUser.recoveryCode
+          );
+          useRSAStore.getState().setEntries(savedEntries);
+          console.log('[App] Entries hydrated:', savedEntries.length);
+        } catch (entriesErr) {
+          console.error('[App] Failed to load entries:', entriesErr);
         }
       } catch (err) {
         console.error('[App] Failed to load user profile:', err);

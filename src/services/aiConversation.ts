@@ -62,17 +62,36 @@ function buildUserContext(): string {
     context += '\n';
   }
 
-  // Add recent check-ins (last 5)
-  if (entries.length > 0) {
+  // Add recent check-ins (5 most recent).
+  // An entry with nothing filled in yet carries no signal, so skip those rather
+  // than feeding the model blank bullets.
+  const meaningfulEntries = entries.filter(
+    entry =>
+      (entry.situation && entry.situation.trim()) ||
+      (entry.beliefs && entry.beliefs.length > 0) ||
+      (entry.emotions && entry.emotions.length > 0)
+  );
+  if (meaningfulEntries.length > 0) {
     context += '**Recent Check-Ins:**\n';
-    const recent = entries.slice(-5);
+    // Newest first. slice(-5) took the OLDEST five, since the backend already
+    // returns entries newest-first.
+    const recent = [...meaningfulEntries]
+      .sort((a, b) => (b.lastUpdated || b.timestamp || 0) - (a.lastUpdated || a.timestamp || 0))
+      .slice(0, 5);
     recent.forEach(entry => {
-      context += `\n- Situation: ${entry.situation.substring(0, 100)}\n`;
-      if (entry.beliefs.length > 0) {
+      if (entry.situation) {
+        context += `\n- Situation: ${entry.situation.substring(0, 200)}\n`;
+      } else {
+        context += `\n- Check-in (${entry.status === 'in_progress' ? 'in progress' : 'completed'})\n`;
+      }
+      if (entry.beliefs?.length > 0) {
         context += `  Beliefs: ${entry.beliefs.map(b => b.text).join('; ')}\n`;
       }
-      if (entry.emotions.length > 0) {
+      if (entry.emotions?.length > 0) {
         context += `  Emotions: ${entry.emotions.join(', ')}\n`;
+      }
+      if (entry.effect) {
+        context += `  New perspective: ${entry.effect.substring(0, 200)}\n`;
       }
     });
     context += '\n';

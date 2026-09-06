@@ -13,7 +13,7 @@ interface ConversationStep {
 export function AIGuidedRSA() {
   // AI-guided RSA: conversational approach to help users work through rational self-analysis
   // Includes save progress, confirmation phase, and in-progress tracking features
-  const { currentEntry, currentUser, setSituation, setStepA, addBelief, setEmotions, setEffect, setSavedEntry, setView } = useRSAStore();
+  const { currentEntry, currentUser, setSituation, setStepA, addBelief, setEmotions, setEffect, setCurrentEntry, setSavedEntry, setView } = useRSAStore();
   const [messages, setMessages] = useState<Message[]>(
     currentEntry.situation
       ? [
@@ -145,12 +145,16 @@ export function AIGuidedRSA() {
         effect: phaseData.perspective || currentEntry.effect,
       };
 
-      await saveProgressEntry(
+      // Keep the row id the backend assigns. Without it the next save minted a
+      // brand new row, so one check-in turned into a pile of duplicates in the
+      // Decision Log, with the in-progress copies never going away.
+      const saved = await saveProgressEntry(
         currentUser.userId,
         entryToSave,
         currentUser.recoveryCode,
         'in_progress'
       );
+      setCurrentEntry(saved);
       alert('Progress saved! You can resume this check-in later.');
       setView('checkin');
     } catch (error) {
@@ -180,13 +184,17 @@ export function AIGuidedRSA() {
         effect: phaseData.perspective || currentEntry.effect,
       };
 
-      await saveProgressEntry(
+      const saved = await saveProgressEntry(
         currentUser.userId,
         entryToSave,
         currentUser.recoveryCode,
         'completed'
       );
 
+      // setSavedEntry() appends whatever currentEntry holds. Point it at the
+      // saved row first so the Decision Log shows the completed entry with its
+      // real id and text rather than a stale pre-save copy.
+      setCurrentEntry(saved);
       setSavedEntry();
       setView('journal');
     } catch (error) {

@@ -1,8 +1,10 @@
 import React, { useEffect } from 'react';
 import { useRSAStore } from '../stores/useRSAStore';
-import { resumeEntry, getAllEntries } from '../services/entries';
+import { resumeEntry, getAllEntries, deleteProgressEntry } from '../services/entries';
 import { Layout } from './Layout';
 import './Journal.css';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const Journal: React.FC = () => {
   const { entries, deleteEntry, setView, resetEntry, setCurrentEntry, setEntries, currentUser } = useRSAStore();
@@ -19,7 +21,7 @@ export const Journal: React.FC = () => {
       }
       try {
         console.log('[Journal] Loading entries for user:', currentUser.userId);
-        const dbEntries = await getAllEntries(currentUser.userId);
+        const dbEntries = await getAllEntries(currentUser.userId, currentUser.recoveryCode);
         console.log('[Journal] Received entries:', dbEntries.length);
         setEntries(dbEntries);
       } catch (error) {
@@ -28,16 +30,28 @@ export const Journal: React.FC = () => {
     };
 
     loadEntries();
-  }, [currentUser?.userId, setEntries]);
+  }, [currentUser?.userId, currentUser?.recoveryCode, setEntries]);
 
   const selected = entries.find(e => e.id === selectedId);
 
-  const handleDelete = (id: string) => {
-    if (window.confirm('Delete this check-in? This cannot be undone.')) {
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Delete this check-in? This cannot be undone.')) return;
+    if (!currentUser) return;
+    try {
+      // Delete server-side first. Removing it only from the store made the
+      // entry reappear on the next load, so "cannot be undone" was a lie.
+      // Ids like "rsa-1725..." never reached the database (the row id is a
+      // uuid), so those are local-only and there is nothing to delete there.
+      if (UUID_RE.test(id)) {
+        await deleteProgressEntry(currentUser.userId, id);
+      }
       deleteEntry(id);
       if (selectedId === id) {
         setSelectedId(null);
       }
+    } catch (error) {
+      console.error('[Journal] Error deleting entry:', error);
+      alert('Could not delete that check-in. Please try again.');
     }
   };
 
@@ -52,7 +66,7 @@ export const Journal: React.FC = () => {
 
   const handleResume = async (entryId: string) => {
     try {
-      const entry = await resumeEntry('', entryId);
+      const entry = await resumeEntry('', entryId, currentUser?.recoveryCode);
       if (entry) {
         setCurrentEntry(entry);
         setView('ai-rsa');
@@ -102,7 +116,9 @@ export const Journal: React.FC = () => {
                       {entry.status === 'in_progress' ? '⏸ In Progress' : '✓ Completed'}
                     </div>
                     <div className="entry-preview">
-                      {entry.situation.substring(0, 50)}...
+                      {entry.situation
+                        ? `${entry.situation.substring(0, 50)}${entry.situation.length > 50 ? '…' : ''}`
+                        : 'No situation recorded yet'}
                     </div>
                   </button>
                 ))}
@@ -150,7 +166,7 @@ export const Journal: React.FC = () => {
                     <p>{selected.a}</p>
                   </div>
 
-                  {selected.beliefs.length > 0 && (
+                  {(selected.beliefs?.length ?? 0) > 0 && (
                     <div className="detail-section">
                       <h3>Beliefs & Rewrites (Steps B & D)</h3>
                       {selected.beliefs.map((belief, idx) => (
@@ -168,7 +184,7 @@ export const Journal: React.FC = () => {
                     </div>
                   )}
 
-                  {selected.emotions.length > 0 && (
+                  {(selected.emotions?.length ?? 0) > 0 && (
                     <div className="detail-section">
                       <h3>Emotions (Step C)</h3>
                       <p>{selected.emotions.join(', ')}</p>

@@ -558,7 +558,7 @@ app.get('/api/debug/profile', async (req, res) => {
 // POST /api/entries - Save or update an RSA entry
 app.post('/api/entries', async (req, res) => {
   try {
-    const { userId, encryptedData, status } = req.body;
+    const { userId, encryptedData, status, entryId: requestedId } = req.body;
 
     if (!userId || !encryptedData) {
       return res.status(400).json({ error: 'Missing userId or encryptedData' });
@@ -572,18 +572,43 @@ app.post('/api/entries', async (req, res) => {
     console.log('[Entries] Entry status:', status);
     console.log('[Entries] Encrypted data length:', encryptedData.length);
 
-    // Generate a UUID for the entry using SHA256 hash of userId + timestamp
-    const timestamp = Date.now();
-    const hash = crypto.createHash('sha256').update(userId + timestamp).digest();
-    const entryId = [
-      hash.slice(0, 4).toString('hex'),
-      hash.slice(4, 6).toString('hex'),
-      hash.slice(6, 8).toString('hex'),
-      hash.slice(8, 10).toString('hex'),
-      hash.slice(10, 16).toString('hex'),
-    ].join('-');
+    // Reuse the caller's row id when it sends one, so saving progress and then
+    // completing the same check-in updates one row instead of leaving a stale
+    // in-progress duplicate behind in the Decision Log.
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    let entryId;
 
-    console.log('[Entries] Generated entry ID:', entryId);
+    if (typeof requestedId === 'string' && UUID_RE.test(requestedId)) {
+      // Never let one user overwrite another user's row by guessing its id.
+      const { data: existing, error: lookupError } = await supabaseAdmin
+        .from('rsa_entries')
+        .select('user_id')
+        .eq('id', requestedId)
+        .maybeSingle();
+
+      if (lookupError) {
+        console.error('[Entries] Lookup error:', lookupError);
+        throw lookupError;
+      }
+      if (existing && existing.user_id !== userId) {
+        console.warn('[Entries] Rejected cross-user entry write for id:', requestedId);
+        return res.status(403).json({ error: 'Entry does not belong to this user' });
+      }
+      entryId = requestedId;
+      console.log('[Entries] Reusing entry ID:', entryId);
+    } else {
+      // Generate a UUID for the entry using SHA256 hash of userId + timestamp
+      const timestamp = Date.now();
+      const hash = crypto.createHash('sha256').update(userId + timestamp).digest();
+      entryId = [
+        hash.slice(0, 4).toString('hex'),
+        hash.slice(4, 6).toString('hex'),
+        hash.slice(6, 8).toString('hex'),
+        hash.slice(8, 10).toString('hex'),
+        hash.slice(10, 16).toString('hex'),
+      ].join('-');
+      console.log('[Entries] Generated entry ID:', entryId);
+    }
 
     const { data, error } = await supabaseAdmin
       .from('rsa_entries')
@@ -639,6 +664,35 @@ app.get('/api/entries/in-progress/:userId', async (req, res) => {
   }
 });
 
+// GET /api/entries/all/:userId - Get every entry for a user, any status.
+// The Decision Log used to call the in-progress endpoint, so completed
+// check-ins were saved but never shown and never reached the AI context.
+// NOTE: must stay above /api/entries/:entryId or Express matches "all" as an id.
+app.get('/api/entries/all/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    console.log('[Entries] Fetching all entries for userId:', userId);
+
+    const { data, error } = await supabaseAdmin
+      .from('rsa_entries')
+      .select('*')
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false });
+
+    if (error) {
+      console.error('[Entries] Supabase error:', error);
+      throw error;
+    }
+
+    console.log('[Entries] Found', data?.length || 0, 'entries');
+    res.json({ entries: data || [] });
+  } catch (error) {
+    console.error('All entries fetch error:', error);
+    res.status(500).json({ error: error.message || 'Failed to fetch entries' });
+  }
+});
+
 // GET /api/entries/:entryId - Get a specific entry for resuming
 app.get('/api/entries/:entryId', async (req, res) => {
   try {
@@ -663,7 +717,16 @@ app.get('/api/entries/:entryId', async (req, res) => {
     }
 
     console.log('[Entries] Entry fetched:', data.id);
-    res.json({ ...data.encrypted_data, id: data.id });
+    // Return the row as stored. Spreading encrypted_data here produced
+    // {"0":"r","1":"O",...} for the (normal) case where it is a ciphertext
+    // string, so Resume loaded a garbage entry. The client decrypts.
+    res.json({
+      id: data.id,
+      status: data.status,
+      encrypted_data: data.encrypted_data,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+    });
   } catch (error) {
     console.error('Entry fetch error:', error);
     res.status(500).json({ error: error.message || 'Failed to fetch entry' });
@@ -682,19 +745,28 @@ app.delete('/api/entries/:entryId', async (req, res) => {
 
     console.log('[Entries] Deleting entry:', entryId, 'for userId:', userId);
 
-    const { error } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from('rsa_entries')
       .delete()
       .eq('id', entryId)
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .select('id');
 
     if (error) {
       console.error('[Entries] Supabase error:', error);
       throw error;
     }
 
+    // A delete that matched nothing is not a success. Reporting one let the
+    // Decision Log remove the entry from the screen while the row survived,
+    // so it came back on the next load.
+    if (!data || data.length === 0) {
+      console.warn('[Entries] Delete matched no rows for:', entryId);
+      return res.status(404).json({ error: 'Entry not found for this user' });
+    }
+
     console.log('[Entries] Entry deleted:', entryId);
-    res.json({ success: true, message: 'Entry deleted' });
+    res.json({ success: true, message: 'Entry deleted', deleted: data.length });
   } catch (error) {
     console.error('Entry delete error:', error);
     res.status(500).json({ error: error.message || 'Failed to delete entry' });

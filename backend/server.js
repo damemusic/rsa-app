@@ -854,17 +854,6 @@ app.post('/api/ai-profile/:userId', async (req, res) => {
     console.log('[AIProfile] scenarioResponses count:', scenarioResponses?.length || 0);
     console.log('[AIProfile] reactionPatterns count:', reactionPatterns?.length || 0);
 
-    // Ensure user exists in rsa_users table
-    const { error: userError } = await supabaseAdmin
-      .from('rsa_users')
-      .upsert({ id: userId }, { onConflict: 'id' })
-      .select();
-
-    if (userError) {
-      console.error('[AIProfile] Error creating user:', userError);
-      throw userError;
-    }
-
     // Save AI profile to rsa_profiles table
     const aiProfileData = {
       familyMembers: familyMembers || [],

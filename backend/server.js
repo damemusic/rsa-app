@@ -1007,16 +1007,14 @@ app.post('/api/ai-profile/:userId', async (req, res) => {
       lastUpdated: new Date().toISOString(),
     };
 
+    // Update only existing rows (don't insert new ones) to avoid NOT NULL constraint on encrypted_data
     const { data, error } = await supabaseAdmin
       .from('rsa_profiles')
-      .upsert(
-        {
-          user_id: userId,
-          ai_profile: aiProfileData,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'user_id' }
-      )
+      .update({
+        ai_profile: aiProfileData,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId)
       .select();
 
     if (error) {

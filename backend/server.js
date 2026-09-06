@@ -150,7 +150,9 @@ Example output format:
       messages: [{ role: 'user', content: userPrompt }],
     });
 
-    const content = response.content[0]?.type === 'text' ? response.content[0].text : '';
+    // Handle thinking blocks - find the text block (may not be first)
+    const textBlock = response.content.find(block => block.type === 'text');
+    const content = textBlock?.text || '';
 
     try {
       const jsonMatch = content.match(/\[.*\]/s);
@@ -214,7 +216,9 @@ Is the new version better? Which rules still need work?`;
       messages: [{ role: 'user', content: userPrompt }],
     });
 
-    const feedback = response.content[0]?.type === 'text' ? response.content[0].text : '';
+    // Handle thinking blocks - find the text block (may not be first)
+    const textBlock = response.content.find(block => block.type === 'text');
+    const feedback = textBlock?.text || '';
     res.json({ feedback });
   } catch (error) {
     console.error('Rewrite check error:', error);
@@ -973,23 +977,23 @@ Generate 1-2 follow-up questions.`;
       messages: [{ role: 'user', content: userPrompt }],
     });
 
-    console.log('[GenQuestions] Claude response:', { content_length: response.content?.length, first_block: response.content?.[0] });
-
     if (!response.content || response.content.length === 0) {
       throw new Error('Empty response from Claude');
     }
 
-    const content = response.content[0];
-    if (content.type !== 'text') {
-      throw new Error(`Unexpected response type from Claude: ${content.type}`);
+    // Handle thinking blocks - find the text block (may not be first)
+    const textBlock = response.content.find(block => block.type === 'text');
+    if (!textBlock) {
+      console.error('[GenQuestions] No text block found in response. Blocks:', response.content.map(b => `type=${b.type}`).join(', '));
+      throw new Error('No text content in Claude response');
     }
 
     let generatedQuestions;
     try {
-      const jsonMatch = content.text.match(/\[[\s\S]*\]/);
+      const jsonMatch = textBlock.text.match(/\[[\s\S]*\]/);
       generatedQuestions = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
     } catch (parseErr) {
-      console.error('[GenQuestions] Failed to parse Claude response:', parseErr, 'Text:', content.text);
+      console.error('[GenQuestions] Failed to parse Claude response:', parseErr, 'Text:', textBlock.text);
       generatedQuestions = [];
     }
 

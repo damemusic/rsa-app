@@ -10,6 +10,8 @@ import './FamilyProfile.css';
 type Tab = 'family' | 'scenarios';
 
 export const FamilyProfile: React.FC = () => {
+  console.log('[FamilyProfile] Component loaded - v2b116e7');
+
   const {
     aiProfile,
     currentUser,

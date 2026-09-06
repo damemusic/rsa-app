@@ -118,28 +118,30 @@ export const FamilyProfile: React.FC = () => {
   const handleScenarioResponse = (response: string) => {
     setScenarioResponses({
       ...scenarioResponses,
-      [SCENARIO_QUESTIONS[currentScenarioIdx].id]: response,
+      [currentQuestion?.id || '']: response,
     });
   };
 
   const handleNextScenario = async () => {
-    const currentQ = SCENARIO_QUESTIONS[currentScenarioIdx];
-    if (!scenarioResponses[currentQ.id]) {
+    if (!currentQuestion?.id || !scenarioResponses[currentQuestion.id]) {
       return;
     }
 
-    const userResponse = scenarioResponses[currentQ.id];
-    addScenarioResponse(currentQ.description, userResponse);
+    const userResponse = scenarioResponses[currentQuestion.id];
+
+    // For base questions, use the description; for generated questions, use the title
+    const questionLabel = isShowingGenerated ? currentQuestion.title : currentQuestion.description;
+    addScenarioResponse(questionLabel, userResponse);
 
     // Capture currentUser value to ensure we have it for the async call
     const userId = currentUser?.userId;
-    if (userId && !isGeneratingQuestions) {
+    if (userId && !isGeneratingQuestions && !isShowingGenerated) {
       setIsGeneratingQuestions(true);
       try {
         const newQuestions = await generateFollowUpQuestions(
           userId,
           userResponse,
-          currentQ.id,
+          currentQuestion.id,
           aiProfile
         );
         if (newQuestions.length > 0) {
@@ -156,10 +158,8 @@ export const FamilyProfile: React.FC = () => {
     }
 
     // Progress to next question
-    if (currentScenarioIdx < SCENARIO_QUESTIONS.length - 1) {
+    if (questionNumber < totalQuestions) {
       setCurrentScenarioIdx(currentScenarioIdx + 1);
-    } else if (generatedQuestions.length > 0) {
-      setCurrentScenarioIdx(0);
     } else {
       setActiveTab('family');
       setCurrentScenarioIdx(0);

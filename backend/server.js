@@ -307,6 +307,9 @@ app.post('/api/user/profile', async (req, res) => {
 
     console.log('[Profile] Saved successfully');
     console.log('[Profile]   returned data:', data[0]);
+    console.log('[Profile]   returned encrypted_data length:', data[0]?.encrypted_data?.length);
+    console.log('[Profile]   returned encrypted_data first 50 chars:', data[0]?.encrypted_data?.substring(0, 50));
+    console.log('[Profile]   Match - sent length:', encryptedProfile.length, 'returned length:', data[0]?.encrypted_data?.length, 'match:', encryptedProfile === data[0]?.encrypted_data);
     res.json({ profile: data[0] });
   } catch (error) {
     console.error('Profile save error:', error);

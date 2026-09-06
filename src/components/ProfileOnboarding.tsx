@@ -89,15 +89,19 @@ export function ProfileOnboarding() {
       }
 
       // Encrypt and save profile
+      console.log('[ProfileOnboarding] Profile to encrypt:', { keys: Object.keys(profile), isEmpty: Object.keys(profile).length === 0 });
       const encrypted = await encryptData(profile, currentUser.recoveryCode);
+      console.log('[ProfileOnboarding] Encrypted result:', { type: typeof encrypted, length: encrypted.length, first50: encrypted.substring(0, 50) });
       console.log('[ProfileOnboarding] About to save profile:', { userId: currentUser.userId, encryptedLength: encrypted.length });
+      const requestBody = {
+        userId: currentUser.userId,
+        encryptedProfile: encrypted,
+      };
+      console.log('[ProfileOnboarding] Request body:', { userId: requestBody.userId, encryptedProfileType: typeof requestBody.encryptedProfile, encryptedProfileLength: requestBody.encryptedProfile.length });
       const saveRes = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/user/profile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: currentUser.userId,
-          encryptedProfile: encrypted,
-        }),
+        body: JSON.stringify(requestBody),
       });
       console.log('[ProfileOnboarding] Save response status:', saveRes.status);
       if (!saveRes.ok) {

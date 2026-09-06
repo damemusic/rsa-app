@@ -48,6 +48,49 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+// Diagnostic endpoint to check and fix schema issues
+app.get('/api/diagnose/schema', async (req, res) => {
+  try {
+    console.log('[Diagnose] Checking rsa_profiles schema...');
+
+    // Check column type using information_schema
+    const { data: columns, error: colError } = await supabaseAdmin
+      .from('information_schema.columns')
+      .select('column_name, data_type, udt_name')
+      .eq('table_name', 'rsa_profiles')
+      .eq('column_name', 'encrypted_data');
+
+    if (colError) {
+      console.log('[Diagnose] Could not query information_schema, trying direct check');
+    }
+
+    // Try a different approach - fetch a test record and check its type
+    const { data: testProfile, error: testError } = await supabaseAdmin
+      .from('rsa_profiles')
+      .select('encrypted_data')
+      .limit(1);
+
+    let encryptedDataType = 'unknown';
+    if (testProfile && testProfile.length > 0) {
+      const val = testProfile[0].encrypted_data;
+      encryptedDataType = typeof val;
+      if (typeof val === 'object') {
+        encryptedDataType = `object: ${JSON.stringify(val).substring(0, 50)}`;
+      }
+    }
+
+    res.json({
+      status: 'checked',
+      encrypted_data_sample_type: encryptedDataType,
+      info_schema: columns,
+      note: 'If encrypted_data_sample_type is "object", column is likely still JSONB and needs migration'
+    });
+  } catch (error) {
+    console.error('[Diagnose] Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Main Claude API endpoint
 app.post('/api/claude', async (req, res) => {
   try {

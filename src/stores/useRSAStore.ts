@@ -39,6 +39,10 @@ interface RSAStore {
 
   // AI Profile (family & scenarios)
   aiProfile: AIProfile;
+  // True once the AI profile has been hydrated from (or confirmed absent on) the backend.
+  // Nothing may save the AI profile before this flips, or an empty local profile
+  // overwrites the stored one.
+  aiProfileLoaded: boolean;
 
   // Current RSA being worked on
   currentEntry: RSAEntry;
@@ -79,6 +83,7 @@ interface RSAStore {
   setBeliefSuggestions: (suggestions: string[], loading?: boolean, error?: string) => void;
 
   // Family & AI Profile actions
+  setAIProfile: (profile: Partial<AIProfile> | null) => void;
   addFamilyMember: (member: Omit<FamilyMember, 'id'>) => void;
   updateFamilyMember: (id: string, updates: Partial<FamilyMember>) => void;
   deleteFamilyMember: (id: string) => void;
@@ -104,15 +109,23 @@ interface RSAStore {
   resetEntry: () => void;
 }
 
+// Ids must be unique even when several records are created inside the same
+// millisecond, which Date.now() alone cannot guarantee.
+let idCounter = 0;
+const makeId = (prefix: string) => `${prefix}-${Date.now()}-${(idCounter += 1)}`;
+
+const emptyAIProfile = (): AIProfile => ({
+  familyMembers: [],
+  scenarioResponses: [],
+  reactionPatterns: [],
+  lastUpdated: 0,
+});
+
 const initialState = {
   currentUser: null,
   userProfile: null,
-  aiProfile: {
-    familyMembers: [],
-    scenarioResponses: [],
-    reactionPatterns: [],
-    lastUpdated: 0,
-  } as AIProfile,
+  aiProfile: emptyAIProfile(),
+  aiProfileLoaded: false,
   currentEntry: freshRSA(),
   view: 'auth' as View,
   step: 0,
@@ -135,7 +148,15 @@ export const useRSAStore = create<RSAStore>((set) => ({
           set({ userProfile: profile, view: 'checkin' }),
 
         clearUser: () =>
-          set({ currentUser: null, userProfile: null, view: 'auth' }),
+          set({
+            currentUser: null,
+            userProfile: null,
+            view: 'auth',
+            // The AI profile belongs to the signed-out user; leaving it in place
+            // would leak it into the next session and get saved under their id.
+            aiProfile: emptyAIProfile(),
+            aiProfileLoaded: false,
+          }),
 
         setCurrentEntry: (entry) =>
           set({ currentEntry: entry }),
@@ -263,6 +284,9 @@ export const useRSAStore = create<RSAStore>((set) => ({
         reset: () =>
           set({
             ...initialState,
+            aiProfile: emptyAIProfile(),
+            aiProfileLoaded: false,
+            currentEntry: freshRSA(),
           }),
 
         resetEntry: () =>
@@ -275,13 +299,67 @@ export const useRSAStore = create<RSAStore>((set) => ({
             suggestError: '',
           }),
 
+        // Replaces the AI profile wholesale. This is the only correct way to
+        // hydrate from the backend — replaying addFamilyMember/addScenarioResponse
+        // appends, so every reload used to duplicate the stored data.
+        setAIProfile: (profile) =>
+          set(() => {
+            if (!profile) {
+              return { aiProfile: emptyAIProfile(), aiProfileLoaded: true };
+            }
+
+            const familyMembers: FamilyMember[] = Array.isArray(profile.familyMembers)
+              ? profile.familyMembers
+                  .filter((m): m is FamilyMember => !!m && typeof m === 'object')
+                  .map((m) => ({
+                    id: m.id || makeId('member'),
+                    name: m.name || '',
+                    role: m.role || 'other',
+                    relationshipQuality: m.relationshipQuality || 'neutral',
+                    interactionFrequency: m.interactionFrequency || 'weekly',
+                    anxietyTriggers: m.anxietyTriggers || '',
+                  }))
+              : [];
+
+            // Collapse any duplicates left behind by the old append-on-load bug:
+            // one response per scenario, most recent wins.
+            const byScenario = new Map<string, ScenarioResponse>();
+            if (Array.isArray(profile.scenarioResponses)) {
+              for (const r of profile.scenarioResponses) {
+                if (!r || typeof r !== 'object' || !r.scenario) continue;
+                const existing = byScenario.get(r.scenario);
+                const timestamp = typeof r.timestamp === 'number' ? r.timestamp : 0;
+                if (existing && existing.timestamp >= timestamp) continue;
+                byScenario.set(r.scenario, {
+                  id: r.id || makeId('scenario'),
+                  scenario: r.scenario,
+                  userResponse: r.userResponse || '',
+                  timestamp,
+                });
+              }
+            }
+
+            return {
+              aiProfile: {
+                familyMembers,
+                scenarioResponses: Array.from(byScenario.values()),
+                reactionPatterns: Array.isArray(profile.reactionPatterns)
+                  ? profile.reactionPatterns.filter((p): p is string => typeof p === 'string')
+                  : [],
+                lastUpdated:
+                  typeof profile.lastUpdated === 'number' ? profile.lastUpdated : Date.now(),
+              },
+              aiProfileLoaded: true,
+            };
+          }),
+
         addFamilyMember: (member) =>
           set((state) => ({
             aiProfile: {
               ...state.aiProfile,
               familyMembers: [
                 ...state.aiProfile.familyMembers,
-                { ...member, id: `member-${Date.now()}` },
+                { ...member, id: makeId('member') },
               ],
               lastUpdated: Date.now(),
             },
@@ -307,22 +385,36 @@ export const useRSAStore = create<RSAStore>((set) => ({
             },
           })),
 
+        // Upsert by scenario: re-answering a question replaces the previous
+        // answer instead of stacking a second copy of the same question.
         addScenarioResponse: (scenario, response) =>
-          set((state) => ({
-            aiProfile: {
-              ...state.aiProfile,
-              scenarioResponses: [
-                ...state.aiProfile.scenarioResponses,
-                {
-                  id: `scenario-${Date.now()}`,
-                  scenario,
-                  userResponse: response,
-                  timestamp: Date.now(),
-                },
-              ],
-              lastUpdated: Date.now(),
-            },
-          })),
+          set((state) => {
+            const existingIdx = state.aiProfile.scenarioResponses.findIndex(
+              (r) => r.scenario === scenario
+            );
+            const scenarioResponses = [...state.aiProfile.scenarioResponses];
+            if (existingIdx >= 0) {
+              scenarioResponses[existingIdx] = {
+                ...scenarioResponses[existingIdx],
+                userResponse: response,
+                timestamp: Date.now(),
+              };
+            } else {
+              scenarioResponses.push({
+                id: makeId('scenario'),
+                scenario,
+                userResponse: response,
+                timestamp: Date.now(),
+              });
+            }
+            return {
+              aiProfile: {
+                ...state.aiProfile,
+                scenarioResponses,
+                lastUpdated: Date.now(),
+              },
+            };
+          }),
 
         clearScenarioResponses: () =>
           set((state) => ({

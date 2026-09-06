@@ -307,3 +307,20 @@
     width: 100%;
   }
 }
+
+/* Save status — makes persistence visible instead of implied */
+.save-status {
+  min-height: 1.4em;
+  margin-bottom: var(--space-md);
+  font-size: 0.85rem;
+  color: var(--text-secondary, #666);
+}
+
+.save-status-muted {
+  opacity: 0.75;
+}
+
+.save-status-error {
+  color: #b3261e;
+  font-weight: 600;
+}

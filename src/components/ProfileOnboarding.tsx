@@ -74,19 +74,14 @@ export function ProfileOnboarding() {
 
       setProfileGenerated(profile);
 
-      // Add questionnaire responses to aiProfile for persistence
+      // Add questionnaire responses to aiProfile for persistence.
+      // NOTE: the actual save happens *after* the encrypted profile POST below.
+      // The ai_profile column lives on the same rsa_profiles row, which does not
+      // exist yet for a new user, so saving here was a guaranteed no-op and the
+      // onboarding answers were lost every time.
       answers.forEach((answer) => {
         addScenarioResponse(answer.question, answer.answer);
       });
-
-      // Explicitly save aiProfile to backend immediately
-      try {
-        const updatedStore = useRSAStore.getState();
-        await saveAIProfile(currentUser.userId, updatedStore.aiProfile);
-        console.log('[ProfileOnboarding] AI profile saved to backend');
-      } catch (aiErr) {
-        console.error('[ProfileOnboarding] Failed to save AI profile:', aiErr);
-      }
 
       // Encrypt and save profile
       console.log('[ProfileOnboarding] Profile to encrypt:', { keys: Object.keys(profile), isEmpty: Object.keys(profile).length === 0 });
@@ -114,6 +109,21 @@ export function ProfileOnboarding() {
       }
 
       console.log('[ProfileOnboarding] Profile saved successfully');
+
+      // Now that the rsa_profiles row definitely exists, persist the AI profile
+      // onto it. saveAIProfile throws on a zero-row write, so a failure here is
+      // surfaced rather than silently swallowed.
+      try {
+        const updatedStore = useRSAStore.getState();
+        await saveAIProfile(currentUser.userId, updatedStore.aiProfile);
+        // Mark hydrated so FamilyProfile is allowed to save further changes
+        // without waiting for a page reload.
+        updatedStore.setAIProfile(updatedStore.aiProfile);
+        console.log('[ProfileOnboarding] AI profile saved to backend');
+      } catch (aiErr) {
+        console.error('[ProfileOnboarding] Failed to save AI profile:', aiErr);
+      }
+
       setProfile(profile);
     } catch (err) {
       console.error('Profile error:', err);

@@ -167,6 +167,13 @@ export async function saveAIProfile(userId: string, profileData: unknown): Promi
       throw new Error(`Failed to save AI profile: ${response.statusText}`);
     }
 
+    // A 200 is not proof of a write: the backend UPDATE can match zero rows.
+    // Treat a zero-row write as the failure it is instead of logging success.
+    const result = await response.json().catch(() => null);
+    if (result && typeof result.rowsAffected === 'number' && result.rowsAffected === 0) {
+      throw new Error('AI profile save affected 0 rows — nothing was persisted');
+    }
+
     console.log('[entries] AI profile saved successfully');
   } catch (error) {
     console.error('[entries] Error saving AI profile:', error);
@@ -195,7 +202,10 @@ export async function getAIProfile(userId: string): Promise<Record<string, unkno
     console.log('[entries] AI profile loaded');
     return profile;
   } catch (error) {
+    // Rethrow. Returning null here would be indistinguishable from "this user
+    // has no profile yet", and the caller would then mark the profile hydrated
+    // and let an empty local profile overwrite the stored one.
     console.error('[entries] Error fetching AI profile:', error);
-    return null;
+    throw error;
   }
 }

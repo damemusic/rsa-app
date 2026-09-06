@@ -36,6 +36,23 @@ function buildUserContext(): string {
     context += '\n';
   }
 
+  // Add the Reaction Assessment answers. These are the whole point of the
+  // assessment — they were being collected and stored but never reached the
+  // model, so the AI behaved as if the user had never filled it in.
+  if (aiProfile.scenarioResponses.length > 0) {
+    context += '**How They React (from the Reaction Assessment):**\n';
+    // Newest answers first, capped so a long assessment cannot crowd out the
+    // rest of the context.
+    const responses = [...aiProfile.scenarioResponses]
+      .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+      .slice(0, 15);
+    responses.forEach(r => {
+      context += `- Scenario: ${r.scenario}\n`;
+      context += `  Their reaction: ${r.userResponse}\n`;
+    });
+    context += '\n';
+  }
+
   // Add reaction patterns
   if (aiProfile.reactionPatterns.length > 0) {
     context += '**Reaction Patterns:**\n';

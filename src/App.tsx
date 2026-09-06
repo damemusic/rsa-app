@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRSAStore } from './stores/useRSAStore';
+import type { AIProfile } from './stores/useRSAStore';
 import { Auth } from './components/Auth';
 import { ResetPassword } from './components/ResetPassword';
 import { Setup } from './components/Setup';
@@ -68,15 +69,28 @@ function App() {
     };
   }, [setUser, clearUser]);
 
-  useEffect(() => {
-    // Load profile whenever currentUser changes (after sign-in or sign-up)
-    console.log('[App] useEffect: currentUser changed to:', currentUser);
-    const loadUserProfile = async () => {
-      if (!currentUser) {
-        console.log('[App] useEffect: currentUser is null/undefined, returning');
-        return;
-      }
+  // Which userId we have already hydrated. setUser() builds a new object on
+  // every auth event (token refresh, tab focus), so without this guard the
+  // whole load ran again on each one.
+  const hydratedUserIdRef = useRef<string | null>(null);
+  const userId = currentUser?.userId ?? null;
+  const recoveryCode = currentUser?.recoveryCode ?? null;
 
+  useEffect(() => {
+    if (!userId || !recoveryCode) {
+      hydratedUserIdRef.current = null;
+      return;
+    }
+    if (hydratedUserIdRef.current === userId) {
+      console.log('[App] Profile already hydrated for', userId, '- skipping');
+      return;
+    }
+    hydratedUserIdRef.current = userId;
+
+    console.log('[App] Hydrating profile for user:', userId);
+    const currentUser = { userId, recoveryCode };
+
+    const loadUserProfile = async () => {
       try {
         // Setup user in database if not already done
         try {
@@ -124,42 +138,32 @@ function App() {
             const { setView } = useRSAStore.getState();
             setView('profile');
           }
-
-          // Load AI profile (scenario responses and family members) from backend
-          try {
-            const aiProfileData = await getAIProfile(currentUser.userId);
-            if (aiProfileData) {
-              const store = useRSAStore.getState();
-              // Restore AI profile data to store
-              if (aiProfileData.familyMembers) {
-                (aiProfileData.familyMembers as any[]).forEach((member: any) => {
-                  store.addFamilyMember({
-                    name: member.name,
-                    role: member.role,
-                    relationshipQuality: member.relationshipQuality,
-                    interactionFrequency: member.interactionFrequency,
-                    anxietyTriggers: member.anxietyTriggers,
-                  });
-                });
-              }
-              if (aiProfileData.scenarioResponses) {
-                (aiProfileData.scenarioResponses as any[]).forEach((response: any) => {
-                  store.addScenarioResponse(response.scenario, response.userResponse);
-                });
-              }
-              if (aiProfileData.reactionPatterns) {
-                store.updateReactionPatterns(aiProfileData.reactionPatterns as string[]);
-              }
-              console.log('[App] AI profile loaded from backend');
-            }
-          } catch (aiErr) {
-            console.error('[App] Failed to load AI profile:', aiErr);
-          }
         } catch (profileErr) {
           console.error('[App] Failed to load profile:', profileErr);
           // Navigate to profile creation if decryption fails (e.g., old format incompatible)
           const { setView } = useRSAStore.getState();
           setView('profile');
+        }
+
+        // Load the AI profile independently of the encrypted questionnaire —
+        // a failure on one must not leave the other unhydrated.
+        try {
+          const aiProfileData = await getAIProfile(currentUser.userId);
+          // setAIProfile replaces wholesale and marks the profile hydrated.
+          // Passing null (no stored profile yet) still marks it hydrated so
+          // FamilyProfile is allowed to start saving.
+          useRSAStore.getState().setAIProfile(
+            (aiProfileData as Partial<AIProfile> | null) ?? null
+          );
+          console.log(
+            '[App] AI profile hydrated:',
+            useRSAStore.getState().aiProfile.familyMembers.length, 'family members,',
+            useRSAStore.getState().aiProfile.scenarioResponses.length, 'scenario responses'
+          );
+        } catch (aiErr) {
+          console.error('[App] Failed to load AI profile:', aiErr);
+          // Leave aiProfileLoaded false: we do not know what is on the server,
+          // so saving now could overwrite it with an empty profile.
         }
       } catch (err) {
         console.error('[App] Failed to load user profile:', err);
@@ -167,7 +171,7 @@ function App() {
     };
 
     loadUserProfile();
-  }, [currentUser]);
+  }, [userId, recoveryCode]);
 
   if (loading) {
     return (

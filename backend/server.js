@@ -1004,17 +1004,25 @@ app.post('/api/ai-profile/:userId', async (req, res) => {
       familyMembers: familyMembers || [],
       scenarioResponses: scenarioResponses || [],
       reactionPatterns: reactionPatterns || [],
-      lastUpdated: new Date().toISOString(),
+      // Epoch millis, matching the client's AIProfile.lastUpdated type. This
+      // used to be an ISO string, which the client could not read back.
+      lastUpdated: Date.now(),
     };
 
-    // Update only existing rows (don't insert new ones) to avoid NOT NULL constraint on encrypted_data
+    // Upsert on user_id. An UPDATE alone silently matched zero rows whenever the
+    // rsa_profiles row did not exist yet (every brand-new user), which is why
+    // ai_profile was NULL for everyone. On conflict only the two columns below
+    // are written, so encrypted_data is never touched.
     const { data, error } = await supabaseAdmin
       .from('rsa_profiles')
-      .update({
-        ai_profile: aiProfileData,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_id', userId)
+      .upsert(
+        {
+          user_id: userId,
+          ai_profile: aiProfileData,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id' }
+      )
       .select();
 
     if (error) {
@@ -1022,8 +1030,18 @@ app.post('/api/ai-profile/:userId', async (req, res) => {
       throw error;
     }
 
-    console.log('[AIProfile] AI profile saved successfully');
-    res.json({ success: true, profile: aiProfileData });
+    const rowsAffected = Array.isArray(data) ? data.length : data ? 1 : 0;
+    if (rowsAffected === 0) {
+      // Never report success on a write that stored nothing.
+      console.error('[AIProfile] Upsert affected 0 rows for userId:', userId);
+      return res.status(500).json({
+        error: 'AI profile write affected 0 rows',
+        rowsAffected: 0,
+      });
+    }
+
+    console.log('[AIProfile] AI profile saved successfully, rowsAffected:', rowsAffected);
+    res.json({ success: true, rowsAffected, profile: aiProfileData });
   } catch (error) {
     console.error('[AIProfile] Save error:', error);
     res.status(500).json({ error: error.message || 'Failed to save AI profile' });

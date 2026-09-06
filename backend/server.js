@@ -269,8 +269,16 @@ app.post('/api/user/setup', async (req, res) => {
 // POST /api/user/profile - Save encrypted profile
 app.post('/api/user/profile', async (req, res) => {
   try {
-    console.log('[Profile] Raw req.body:', JSON.stringify(req.body).substring(0, 200));
+    console.log('\n[Profile] === PROFILE SAVE REQUEST START ===');
+    console.log('[Profile] Raw req.body:', JSON.stringify(req.body).substring(0, 300));
     console.log('[Profile] Raw req.body keys:', Object.keys(req.body));
+    console.log('[Profile] req.body.encryptedProfile type:', typeof req.body.encryptedProfile);
+    console.log('[Profile] req.body.encryptedProfile value:', req.body.encryptedProfile);
+    if (req.body.encryptedProfile) {
+      console.log('[Profile] req.body.encryptedProfile is string:', typeof req.body.encryptedProfile === 'string');
+      console.log('[Profile] req.body.encryptedProfile length:', req.body.encryptedProfile.length);
+      console.log('[Profile] req.body.encryptedProfile first 100:', req.body.encryptedProfile.substring(0, 100));
+    }
 
     const { userId, encryptedProfile } = req.body;
 
@@ -278,6 +286,7 @@ app.post('/api/user/profile', async (req, res) => {
       console.log('[Profile] ERROR: Missing userId or encryptedProfile');
       console.log('[Profile]   userId exists:', !!userId, 'type:', typeof userId);
       console.log('[Profile]   encryptedProfile exists:', !!encryptedProfile, 'type:', typeof encryptedProfile);
+      console.log('[Profile]   encryptedProfile value after destructure:', encryptedProfile);
       return res.status(400).json({ error: 'Missing userId or encryptedProfile' });
     }
 
@@ -307,8 +316,13 @@ app.post('/api/user/profile', async (req, res) => {
       encrypted_data: encryptedProfile,
       updated_at: new Date().toISOString(),
     };
-    console.log('[Profile] Upsert object:', JSON.stringify(upsertObject).substring(0, 200));
-    console.log('[Profile] Upsert object.encrypted_data:', upsertObject.encrypted_data.substring(0, 100));
+    console.log('[Profile] === BEFORE UPSERT ===');
+    console.log('[Profile] Upsert object keys:', Object.keys(upsertObject));
+    console.log('[Profile] upsertObject.user_id:', upsertObject.user_id);
+    console.log('[Profile] upsertObject.encrypted_data type:', typeof upsertObject.encrypted_data);
+    console.log('[Profile] upsertObject.encrypted_data length:', upsertObject.encrypted_data.length);
+    console.log('[Profile] upsertObject.encrypted_data value:', upsertObject.encrypted_data);
+    console.log('[Profile] upsertObject.encrypted_data substring(0,100):', upsertObject.encrypted_data.substring(0, 100));
 
     const { data, error } = await supabaseAdmin
       .from('rsa_profiles')
@@ -318,13 +332,24 @@ app.post('/api/user/profile', async (req, res) => {
       )
       .select();
 
-    if (error) throw error;
+    if (error) {
+      console.error('[Profile] UPSERT ERROR:', error);
+      throw error;
+    }
 
-    console.log('[Profile] Saved successfully');
-    console.log('[Profile]   returned data:', data[0]);
-    console.log('[Profile]   returned encrypted_data length:', data[0]?.encrypted_data?.length);
-    console.log('[Profile]   returned encrypted_data first 50 chars:', data[0]?.encrypted_data?.substring(0, 50));
-    console.log('[Profile]   Match - sent length:', encryptedProfile.length, 'returned length:', data[0]?.encrypted_data?.length, 'match:', encryptedProfile === data[0]?.encrypted_data);
+    console.log('[Profile] === AFTER UPSERT ===');
+    console.log('[Profile] Upsert successful');
+    console.log('[Profile] Returned data:', data);
+    if (data && data[0]) {
+      console.log('[Profile] data[0] keys:', Object.keys(data[0]));
+      console.log('[Profile] data[0].encrypted_data type:', typeof data[0].encrypted_data);
+      console.log('[Profile] data[0].encrypted_data value:', data[0].encrypted_data);
+      console.log('[Profile] data[0].encrypted_data length:', data[0].encrypted_data?.length);
+      console.log('[Profile] Sent length:', encryptedProfile.length, 'Returned length:', data[0].encrypted_data?.length);
+      console.log('[Profile] Data matches:', encryptedProfile === data[0].encrypted_data);
+    } else {
+      console.log('[Profile] WARNING: No data returned from upsert!');
+    }
     res.json({ profile: data[0] });
   } catch (error) {
     console.error('Profile save error:', error);

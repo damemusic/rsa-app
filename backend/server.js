@@ -301,14 +301,19 @@ app.post('/api/user/profile', async (req, res) => {
     }
     console.log('[Profile] User ensured in rsa_users');
 
+    // Debug: log the exact object being sent to Supabase
+    const upsertObject = {
+      user_id: userId,
+      encrypted_data: encryptedProfile,
+      updated_at: new Date().toISOString(),
+    };
+    console.log('[Profile] Upsert object:', JSON.stringify(upsertObject).substring(0, 200));
+    console.log('[Profile] Upsert object.encrypted_data:', upsertObject.encrypted_data.substring(0, 100));
+
     const { data, error } = await supabaseAdmin
       .from('rsa_profiles')
       .upsert(
-        {
-          user_id: userId,
-          encrypted_data: encryptedProfile,
-          updated_at: new Date().toISOString(),
-        },
+        upsertObject,
         { onConflict: 'user_id' }
       )
       .select();

@@ -96,7 +96,7 @@ export async function deleteProgressEntry(userId: string, entryId: string): Prom
   }
 }
 
-export async function getAllEntries(userId: string, recoveryCode?: string): Promise<RSAEntry[]> {
+export async function getAllEntries(userId: string): Promise<RSAEntry[]> {
   try {
     console.log('[entries] getAllEntries called for userId:', userId);
     const response = await fetch(`${BACKEND_URL}/api/entries/in-progress/${userId}`, {
@@ -151,5 +151,51 @@ export async function getAllEntries(userId: string, recoveryCode?: string): Prom
   } catch (error) {
     console.error('[entries] Error fetching entries:', error);
     return [];
+  }
+}
+
+export async function saveAIProfile(userId: string, profileData: unknown): Promise<void> {
+  try {
+    console.log('[entries] saveAIProfile called for userId:', userId);
+    const response = await fetch(`${BACKEND_URL}/api/ai-profile/${userId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(profileData),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to save AI profile: ${response.statusText}`);
+    }
+
+    console.log('[entries] AI profile saved successfully');
+  } catch (error) {
+    console.error('[entries] Error saving AI profile:', error);
+    throw error;
+  }
+}
+
+export async function getAIProfile(userId: string): Promise<Record<string, unknown> | null> {
+  try {
+    console.log('[entries] getAIProfile called for userId:', userId);
+    const response = await fetch(`${BACKEND_URL}/api/ai-profile/${userId}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        console.log('[entries] No AI profile found (404)');
+        return null;
+      }
+      throw new Error(`Failed to fetch AI profile: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const profile = data.profile || data;
+    console.log('[entries] AI profile loaded');
+    return profile;
+  } catch (error) {
+    console.error('[entries] Error fetching AI profile:', error);
+    return null;
   }
 }

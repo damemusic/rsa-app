@@ -3,7 +3,7 @@ import { useRSAStore } from '../stores/useRSAStore';
 import { Layout } from './Layout';
 import { SCENARIO_QUESTIONS, FAMILY_ROLES, RELATIONSHIP_QUALITIES, INTERACTION_FREQUENCIES } from '../services/scenarios';
 import type { FamilyMember } from '../stores/useRSAStore';
-import { saveAIProfile } from '../services/supabase';
+import { saveAIProfile } from '../services/entries';
 import './FamilyProfile.css';
 
 type Tab = 'family' | 'scenarios';
@@ -32,9 +32,8 @@ export const FamilyProfile: React.FC = () => {
         return;
       }
       try {
-        const aiProfileJson = JSON.stringify(aiProfile);
-        console.log('[FamilyProfile] Saving AI profile:', aiProfileJson);
-        await saveAIProfile(currentUser.userId, aiProfileJson);
+        console.log('[FamilyProfile] Saving AI profile');
+        await saveAIProfile(currentUser.userId, aiProfile);
         console.log('[FamilyProfile] AI profile saved successfully');
       } catch (err) {
         console.error('[FamilyProfile] Failed to save AI profile:', err);

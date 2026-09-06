@@ -15,6 +15,7 @@ import { AIChat } from './components/AIChat';
 import { AIGuidedRSA } from './components/AIGuidedRSA';
 import { Header } from './components/Header';
 import { getSession, onAuthStateChange, getProfile } from './services/supabase';
+import { getAIProfile } from './services/entries';
 import { decryptData } from './services/encryption';
 import './App.css';
 
@@ -124,14 +125,14 @@ function App() {
             setView('profile');
           }
 
-          // Load AI profile (scenario responses and family members) if it exists
-          if (profileData.aiProfile) {
-            try {
-              const aiProfileData = JSON.parse(profileData.aiProfile);
+          // Load AI profile (scenario responses and family members) from backend
+          try {
+            const aiProfileData = await getAIProfile(currentUser.userId);
+            if (aiProfileData) {
               const store = useRSAStore.getState();
               // Restore AI profile data to store
               if (aiProfileData.familyMembers) {
-                aiProfileData.familyMembers.forEach((member: any) => {
+                (aiProfileData.familyMembers as any[]).forEach((member: any) => {
                   store.addFamilyMember({
                     name: member.name,
                     role: member.role,
@@ -142,17 +143,17 @@ function App() {
                 });
               }
               if (aiProfileData.scenarioResponses) {
-                aiProfileData.scenarioResponses.forEach((response: any) => {
+                (aiProfileData.scenarioResponses as any[]).forEach((response: any) => {
                   store.addScenarioResponse(response.scenario, response.userResponse);
                 });
               }
               if (aiProfileData.reactionPatterns) {
-                store.updateReactionPatterns(aiProfileData.reactionPatterns);
+                store.updateReactionPatterns(aiProfileData.reactionPatterns as string[]);
               }
-              console.log('[App] AI profile loaded');
-            } catch (aiErr) {
-              console.error('[App] Failed to parse AI profile:', aiErr);
+              console.log('[App] AI profile loaded from backend');
             }
+          } catch (aiErr) {
+            console.error('[App] Failed to load AI profile:', aiErr);
           }
         } catch (profileErr) {
           console.error('[App] Failed to load profile:', profileErr);

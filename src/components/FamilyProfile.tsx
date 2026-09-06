@@ -124,18 +124,20 @@ export const FamilyProfile: React.FC = () => {
 
   const handleNextScenario = async () => {
     const currentQ = SCENARIO_QUESTIONS[currentScenarioIdx];
-    console.log('[FamilyProfile] handleNextScenario: currentQ.id=', currentQ.id, 'hasResponse=', !!scenarioResponses[currentQ.id]);
-    if (scenarioResponses[currentQ.id]) {
-      const userResponse = scenarioResponses[currentQ.id];
-      addScenarioResponse(currentQ.description, userResponse);
+    if (!scenarioResponses[currentQ.id]) {
+      return;
+    }
 
-      // Generate follow-up questions asynchronously
-      console.log('[FamilyProfile] Before gen: currentUser=', !!currentUser?.userId, 'isGenerating=', isGeneratingQuestions);
-      if (currentUser?.userId && !isGeneratingQuestions) {
-        setIsGeneratingQuestions(true);
-        console.log('[FamilyProfile] Generating follow-up questions for:', currentQ.id);
+    const userResponse = scenarioResponses[currentQ.id];
+    addScenarioResponse(currentQ.description, userResponse);
+
+    // Capture currentUser value to ensure we have it for the async call
+    const userId = currentUser?.userId;
+    if (userId && !isGeneratingQuestions) {
+      setIsGeneratingQuestions(true);
+      try {
         const newQuestions = await generateFollowUpQuestions(
-          currentUser.userId,
+          userId,
           userResponse,
           currentQ.id,
           aiProfile
@@ -145,20 +147,20 @@ export const FamilyProfile: React.FC = () => {
             ...newQuestions.slice(0, 2),
             ...prev.filter((q) => q.id !== newQuestions[0]?.id),
           ]);
-          console.log('[FamilyProfile] Added', newQuestions.length, 'follow-up questions');
         }
+      } catch (err) {
+        console.error('[FamilyProfile] Error generating follow-up questions:', err);
+      } finally {
         setIsGeneratingQuestions(false);
       }
     }
 
+    // Progress to next question
     if (currentScenarioIdx < SCENARIO_QUESTIONS.length - 1) {
       setCurrentScenarioIdx(currentScenarioIdx + 1);
     } else if (generatedQuestions.length > 0) {
-      // Show generated questions after base questions
-      console.log('[FamilyProfile] Transitioning to generated questions');
       setCurrentScenarioIdx(0);
     } else {
-      // Quiz complete
       setActiveTab('family');
       setCurrentScenarioIdx(0);
     }

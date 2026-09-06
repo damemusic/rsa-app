@@ -78,10 +78,6 @@ export const Journal: React.FC = () => {
   return (
     <Layout title="Decision Log" subtitle="Saved check-ins from your practice">
       <div className="journal-container">
-        {/* Debug: Show entry count */}
-        <div style={{ fontSize: '0.8rem', color: '#999', marginBottom: '1rem' }}>
-          Entries loaded: {entries.length}
-        </div>
         {entries.length === 0 ? (
           <div className="empty-journal">
             <p>No entries yet. Complete a check-in to save it to your Decision Log.</p>

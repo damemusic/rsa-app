@@ -265,9 +265,15 @@ app.post('/api/user/setup', async (req, res) => {
 // POST /api/user/profile - Save encrypted profile
 app.post('/api/user/profile', async (req, res) => {
   try {
+    console.log('[Profile] Raw req.body:', JSON.stringify(req.body).substring(0, 200));
+    console.log('[Profile] Raw req.body keys:', Object.keys(req.body));
+
     const { userId, encryptedProfile } = req.body;
 
     if (!userId || !encryptedProfile) {
+      console.log('[Profile] ERROR: Missing userId or encryptedProfile');
+      console.log('[Profile]   userId exists:', !!userId, 'type:', typeof userId);
+      console.log('[Profile]   encryptedProfile exists:', !!encryptedProfile, 'type:', typeof encryptedProfile);
       return res.status(400).json({ error: 'Missing userId or encryptedProfile' });
     }
 

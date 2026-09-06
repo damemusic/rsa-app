@@ -91,6 +91,49 @@ app.get('/api/diagnose/schema', async (req, res) => {
   }
 });
 
+// Diagnostic endpoint to test direct profile save with debugging
+app.get('/api/diagnose/test-save/:userId/:encrypted', async (req, res) => {
+  try {
+    const { userId, encrypted } = req.params;
+
+    console.log('[Diagnose-TestSave] Testing save for userId:', userId);
+    console.log('[Diagnose-TestSave] Encrypted length:', encrypted.length);
+    console.log('[Diagnose-TestSave] Encrypted first 50:', encrypted.substring(0, 50));
+
+    const upsertObject = {
+      user_id: userId,
+      encrypted_data: encrypted,
+      updated_at: new Date().toISOString(),
+    };
+
+    console.log('[Diagnose-TestSave] Before upsert - encrypted_data type:', typeof upsertObject.encrypted_data);
+    console.log('[Diagnose-TestSave] Before upsert - encrypted_data length:', upsertObject.encrypted_data.length);
+
+    const { data, error } = await supabaseAdmin
+      .from('rsa_profiles')
+      .upsert(upsertObject, { onConflict: 'user_id' })
+      .select();
+
+    if (error) {
+      console.error('[Diagnose-TestSave] Upsert error:', error);
+      res.status(500).json({ error: error.message });
+      return;
+    }
+
+    console.log('[Diagnose-TestSave] After upsert - data:', data);
+    if (data && data[0]) {
+      console.log('[Diagnose-TestSave] Returned encrypted_data:', data[0].encrypted_data);
+      console.log('[Diagnose-TestSave] Returned encrypted_data type:', typeof data[0].encrypted_data);
+      console.log('[Diagnose-TestSave] Returned encrypted_data length:', data[0].encrypted_data?.length);
+    }
+
+    res.json({ success: true, saved: data[0] });
+  } catch (error) {
+    console.error('[Diagnose-TestSave] Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Main Claude API endpoint
 app.post('/api/claude', async (req, res) => {
   try {

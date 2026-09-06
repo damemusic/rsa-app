@@ -110,8 +110,9 @@ export async function getAllEntries(userId: string): Promise<RSAEntry[]> {
     }
 
     const data = await response.json();
-    console.log('[entries] getAllEntries received:', data.length, 'entries');
-    return data;
+    const entries = Array.isArray(data) ? data : (data.entries || []);
+    console.log('[entries] getAllEntries received:', entries.length, 'entries');
+    return entries;
   } catch (error) {
     console.error('[entries] Error fetching entries:', error);
     return [];

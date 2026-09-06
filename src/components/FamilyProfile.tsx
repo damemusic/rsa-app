@@ -137,7 +137,9 @@ export const FamilyProfile: React.FC = () => {
 
     // Capture currentUser value to ensure we have it for the async call
     const userId = currentUser?.userId;
+    console.log('[FamilyProfile] handleNextScenario - userId:', userId, 'isGeneratingQuestions:', isGeneratingQuestions, 'isShowingGenerated:', isShowingGenerated);
     if (userId && !isGeneratingQuestions && !isShowingGenerated) {
+      console.log('[FamilyProfile] Triggering follow-up question generation');
       setIsGeneratingQuestions(true);
       try {
         const newQuestions = await generateFollowUpQuestions(
@@ -146,6 +148,7 @@ export const FamilyProfile: React.FC = () => {
           currentQuestion.id,
           aiProfile
         );
+        console.log('[FamilyProfile] Received', newQuestions.length, 'follow-up questions');
         if (newQuestions.length > 0) {
           setGeneratedQuestions((prev) => [
             ...newQuestions.slice(0, 2),
@@ -157,6 +160,8 @@ export const FamilyProfile: React.FC = () => {
       } finally {
         setIsGeneratingQuestions(false);
       }
+    } else {
+      console.log('[FamilyProfile] Skipping follow-up generation - conditions not met');
     }
 
     // Progress to next question

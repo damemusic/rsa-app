@@ -104,6 +104,17 @@ export const FamilyProfile: React.FC = () => {
     }
   };
 
+  // Determine which questions to display (base or generated) - moved before handlers
+  const isShowingGenerated = currentScenarioIdx >= SCENARIO_QUESTIONS.length;
+  const questionsToShow = isShowingGenerated ? generatedQuestions : SCENARIO_QUESTIONS;
+  const displayIdx = isShowingGenerated ? currentScenarioIdx - SCENARIO_QUESTIONS.length : currentScenarioIdx;
+  const currentQuestion = questionsToShow[displayIdx];
+  const currentResponse = scenarioResponses[currentQuestion?.id || ''] || '';
+  const totalQuestions = SCENARIO_QUESTIONS.length + generatedQuestions.length;
+  const questionNumber = isShowingGenerated
+    ? SCENARIO_QUESTIONS.length + displayIdx + 1
+    : currentScenarioIdx + 1;
+
   const handleScenarioResponse = (response: string) => {
     setScenarioResponses({
       ...scenarioResponses,
@@ -177,17 +188,6 @@ export const FamilyProfile: React.FC = () => {
       setCurrentScenarioIdx(0);
     }
   };
-
-  // Determine which questions to display (base or generated)
-  const isShowingGenerated = currentScenarioIdx >= SCENARIO_QUESTIONS.length;
-  const questionsToShow = isShowingGenerated ? generatedQuestions : SCENARIO_QUESTIONS;
-  const displayIdx = isShowingGenerated ? currentScenarioIdx - SCENARIO_QUESTIONS.length : currentScenarioIdx;
-  const currentQuestion = questionsToShow[displayIdx];
-  const currentResponse = scenarioResponses[currentQuestion?.id || ''] || '';
-  const totalQuestions = SCENARIO_QUESTIONS.length + generatedQuestions.length;
-  const questionNumber = isShowingGenerated
-    ? SCENARIO_QUESTIONS.length + displayIdx + 1
-    : currentScenarioIdx + 1;
 
   return (
     <Layout title="Family & AI Profile" subtitle="Help us get to know how you respond to situations">

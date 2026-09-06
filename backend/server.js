@@ -396,8 +396,9 @@ app.get('/api/debug/profile', async (req, res) => {
       },
       ai_profile: {
         type: typeof data.ai_profile,
-        length: data.ai_profile?.length,
-        preview: data.ai_profile ? data.ai_profile.substring(0, 100) : null,
+        isObject: data.ai_profile && typeof data.ai_profile === 'object',
+        length: typeof data.ai_profile === 'string' ? data.ai_profile.length : 'N/A (not a string)',
+        preview: typeof data.ai_profile === 'string' ? data.ai_profile.substring(0, 100) : JSON.stringify(data.ai_profile).substring(0, 100),
       },
       created_at: data.created_at,
       updated_at: data.updated_at,

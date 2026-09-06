@@ -988,9 +988,14 @@ Generate 1-2 follow-up questions.`;
       throw new Error('No text content in Claude response');
     }
 
+    console.log('[GenQuestions] Claude text response (first 500 chars):', textBlock.text.substring(0, 500));
+
     let generatedQuestions;
     try {
       const jsonMatch = textBlock.text.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) {
+        console.warn('[GenQuestions] No JSON array found in Claude response. Full text:', textBlock.text);
+      }
       generatedQuestions = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
     } catch (parseErr) {
       console.error('[GenQuestions] Failed to parse Claude response:', parseErr, 'Text:', textBlock.text);

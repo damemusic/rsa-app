@@ -58,6 +58,15 @@ export function ConsentGate({ onAccepted }: ConsentGateProps) {
             to read what you write. We do not, and nothing you write is shown to
             anyone else.
           </p>
+          <p>
+            When you use the AI conversation, what you write — along with your
+            profile and recent check-ins — is sent to Anthropic, the company
+            that runs the AI, so it can respond to your actual situation. The
+            step-by-step check-in works without it.
+          </p>
+          <p className="consent-plain">
+            Your probation officer cannot see your account or your check-ins.
+          </p>
         </section>
 
         <label className="consent-choice consent-required">
@@ -67,8 +76,25 @@ export function ConsentGate({ onAccepted }: ConsentGateProps) {
             onChange={(e) => setTermsChecked(e.target.checked)}
           />
           <span>
-            I accept the Terms of Service and Privacy Policy.{' '}
-            <strong>Required to use the app.</strong>
+            I accept the{' '}
+            <a
+              href="/terms.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+            >
+              Terms of Service
+            </a>{' '}
+            and{' '}
+            <a
+              href="/privacy.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+            >
+              Privacy Policy
+            </a>
+            . <strong>Required to use the app.</strong>
           </span>
         </label>
 

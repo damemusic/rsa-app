@@ -102,3 +102,11 @@
     padding: 1.25rem;
   }
 }
+
+/* Links inside a checkbox label. The label would otherwise swallow the click
+   and toggle the box, so the handler stops propagation; this just makes them
+   look like links. */
+.consent-choice a {
+  color: var(--ink);
+  text-decoration: underline;
+}

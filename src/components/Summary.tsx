@@ -28,7 +28,9 @@ export const Summary: React.FC = () => {
       // existing row instead of leaving an in-progress duplicate behind.
       setCurrentEntry(saved);
       setSavedEntry();
-      setView('journal');
+      // setSavedEntry() lands on the journal; the contribute step sits in
+      // front of it and bounces straight through for anyone not opted in.
+      setView('contribute');
     } catch (err) {
       console.error('[Summary] Error saving entry:', err);
       setError(err instanceof Error ? err.message : 'Failed to save entry');

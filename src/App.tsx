@@ -17,12 +17,21 @@ import { Header } from './components/Header';
 import { getSession, onAuthStateChange, getProfile } from './services/supabase';
 import { getAIProfile, getAllEntries } from './services/entries';
 import { apiFetch } from './services/api';
+import { ConsentGate } from './components/ConsentGate';
+import { ContributeTags } from './components/ContributeTags';
+import { getConsent } from './services/consent';
 import { decryptData } from './services/encryption';
 import './App.css';
 
 function App() {
   const { view, currentUser, setUser, clearUser, setView } = useRSAStore();
   const [loading, setLoading] = useState(true);
+  // Whose consent this is, so a signed-out user's answer is never read as the
+  // next user's. Null until the first fetch lands.
+  const [consentFor, setConsentFor] = useState<{
+    userId: string;
+    termsAccepted: boolean;
+  } | null>(null);
   // Force deployment test
 
   useEffect(() => {
@@ -74,6 +83,40 @@ function App() {
   const hydratedUserIdRef = useRef<string | null>(null);
   const userId = currentUser?.userId ?? null;
   const recoveryCode = currentUser?.recoveryCode ?? null;
+
+  // Consent is checked on its own, not as part of profile hydration: a profile
+  // that fails to load must not leave the gate open, and the gate must not wait
+  // on an unrelated fetch.
+  //
+  // The answer is stored against the user it was fetched for, and read back
+  // below only when those ids match. Resetting it in an effect on sign-out
+  // would leave one render in which the previous user's answer still applied
+  // to the new one — brief, but that render is the whole gate.
+  useEffect(() => {
+    if (!userId) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const consent = await getConsent();
+        if (!cancelled) setConsentFor({ userId, termsAccepted: consent.termsAccepted });
+      } catch (err) {
+        // Fail closed. If we cannot tell whether the terms were accepted, show
+        // the gate rather than letting the app through on an unknown.
+        console.error('[App] Failed to read consent:', err);
+        if (!cancelled) setConsentFor({ userId, termsAccepted: false });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  // null means "not known yet for this user", which keeps the app from
+  // rendering behind the gate on a stale or missing answer.
+  const termsAccepted =
+    consentFor && consentFor.userId === userId ? consentFor.termsAccepted : null;
 
   useEffect(() => {
     if (!userId || !recoveryCode) {
@@ -187,6 +230,20 @@ function App() {
     );
   }
 
+  // Signed in but the current terms are not accepted: nothing else renders.
+  if (currentUser && termsAccepted === false) {
+    return (
+      <div className="app">
+        <Header />
+        <ConsentGate
+          onAccepted={() =>
+            setConsentFor({ userId: currentUser.userId, termsAccepted: true })
+          }
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="app">
       <Header />
@@ -204,6 +261,7 @@ function App() {
           {view === 'flow' && <StepFlow />}
           {view === 'summary' && <Summary />}
           {view === 'journal' && <Journal />}
+          {view === 'contribute' && <ContributeTags />}
           {view === 'family' && <FamilyProfile />}
           {view === 'ai-chat' && <AIChat />}
           {view === 'ai-rsa' && <AIGuidedRSA />}

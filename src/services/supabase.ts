@@ -193,31 +193,3 @@ export async function getAIProfile(userId: string) {
   if (error && error.code !== 'PGRST116') throw error;
   return data?.ai_profile || null;
 }
-
-export async function setupUser(userId: string, recoveryCode: string) {
-  console.log('[Setup] Creating user:', userId);
-  try {
-    const { data, error } = await supabase
-      .from('rsa_users')
-      .upsert(
-        {
-          id: userId,
-          recovery_code_hash: btoa(recoveryCode),
-          created_at: new Date().toISOString(),
-          last_check_in: null,
-        },
-        { onConflict: 'id' }
-      )
-      .select();
-
-    if (error) {
-      console.error('[Setup] Error creating user:', error);
-      throw error;
-    }
-    console.log('[Setup] User created successfully:', data);
-    return data;
-  } catch (err) {
-    console.error('[Setup] Exception creating user:', err);
-    throw err;
-  }
-}

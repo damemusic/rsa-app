@@ -2,7 +2,10 @@
 
 /**
  * Cleanup script: Call backend endpoint to remove malformed profile data
- * Usage: node scripts/cleanup-profiles.js
+ * Usage: ADMIN_SECRET=... node scripts/cleanup-profiles.js
+ *
+ * The endpoint is operator-only and rejects a call without the shared secret
+ * that is set as ADMIN_SECRET on the backend.
  */
 
 async function cleanupProfiles() {
@@ -12,9 +15,18 @@ async function cleanupProfiles() {
     console.log('[Cleanup] Calling backend cleanup endpoint...');
     console.log(`[Cleanup] URL: ${backendUrl}`);
 
+    const adminSecret = process.env.ADMIN_SECRET;
+    if (!adminSecret) {
+      console.error('[Cleanup] ADMIN_SECRET is not set; the endpoint will reject this call.');
+      process.exit(1);
+    }
+
     const response = await fetch(backendUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Secret': adminSecret,
+      },
     });
 
     if (!response.ok) {

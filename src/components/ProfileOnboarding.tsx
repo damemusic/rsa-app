@@ -3,6 +3,7 @@ import { useRSAStore } from '../stores/useRSAStore';
 import { callClaude } from '../services/ai';
 import { encryptData } from '../services/encryption';
 import { saveAIProfile } from '../services/entries';
+import { apiFetch } from '../services/api';
 import './ProfileOnboarding.css';
 
 interface ProfileQuestion {
@@ -96,9 +97,8 @@ export function ProfileOnboarding() {
       const jsonBody = JSON.stringify(requestBody);
       console.log('[ProfileOnboarding] JSON stringified body length:', jsonBody.length);
       console.log('[ProfileOnboarding] JSON body contains valid encrypted data:', jsonBody.includes(encrypted.substring(0, 50)));
-      const saveRes = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/user/profile`, {
+      const saveRes = await apiFetch('/api/user/profile', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: jsonBody,
       });
       console.log('[ProfileOnboarding] Save response status:', saveRes.status);

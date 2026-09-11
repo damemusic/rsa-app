@@ -3,7 +3,6 @@ import { useRSAStore } from './stores/useRSAStore';
 import type { AIProfile } from './stores/useRSAStore';
 import { Auth } from './components/Auth';
 import { ResetPassword } from './components/ResetPassword';
-import { Setup } from './components/Setup';
 import { ProfileOnboarding } from './components/ProfileOnboarding';
 import { CheckIn } from './components/CheckIn';
 import { Landing } from './components/Landing';
@@ -17,6 +16,7 @@ import { AIGuidedRSA } from './components/AIGuidedRSA';
 import { Header } from './components/Header';
 import { getSession, onAuthStateChange, getProfile } from './services/supabase';
 import { getAIProfile, getAllEntries } from './services/entries';
+import { apiFetch } from './services/api';
 import { decryptData } from './services/encryption';
 import './App.css';
 
@@ -38,7 +38,6 @@ function App() {
     const checkAuth = async () => {
       try {
         console.log('[App] checkAuth starting');
-        console.log('[App] VITE_BACKEND_URL:', import.meta.env.VITE_BACKEND_URL);
         const session = await getSession();
         console.log('[App] Session:', session?.user?.id ? 'exists' : 'null');
 
@@ -94,17 +93,8 @@ function App() {
       try {
         // Setup user in database if not already done
         try {
-          console.log('[App] Calling /api/user/setup with backend URL:', import.meta.env.VITE_BACKEND_URL);
-          const backendUrl = import.meta.env.VITE_BACKEND_URL;
-          if (!backendUrl) {
-            console.error('[App] VITE_BACKEND_URL is not set!');
-            throw new Error('Backend URL not configured');
-          }
-          const setupUrl = `${backendUrl}/api/user/setup`;
-          console.log('[App] Setup URL:', setupUrl);
-          const setupResponse = await fetch(setupUrl, {
+          const setupResponse = await apiFetch('/api/user/setup', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               userId: currentUser.userId,
               recoveryCode: currentUser.recoveryCode,
@@ -202,7 +192,6 @@ function App() {
       <Header />
       {!currentUser ? (
         <>
-          {view === 'setup' ? <Setup /> : null}
           {view === 'auth' && <Auth />}
           {view === 'reset-password' && <ResetPassword />}
         </>

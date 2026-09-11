@@ -4,7 +4,6 @@ const dotenv = require('dotenv');
 const crypto = require('crypto');
 const Anthropic = require('@anthropic-ai/sdk').default;
 const { createClient } = require('@supabase/supabase-js');
-const jwtDecode = require('jwt-decode');
 
 dotenv.config();
 
@@ -30,11 +29,49 @@ const supabaseAdmin = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 console.log('[Backend] Using admin client:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-// Configure CORS explicitly
+// Configure CORS. Every route below runs on the service role key, so the
+// browsers allowed to call it are an allowlist, not '*'.
+const DEFAULT_ORIGINS = ['https://harmonious-cassata-9d5220.netlify.app'];
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+const allowedOrigins = ALLOWED_ORIGINS.length ? ALLOWED_ORIGINS : DEFAULT_ORIGINS;
+
+// Netlify deploy previews of an allowed site, e.g.
+// https://<deploy-id>--harmonious-cassata-9d5220.netlify.app
+const previewHosts = allowedOrigins
+  .map((o) => {
+    try {
+      return new URL(o).host;
+    } catch {
+      return null;
+    }
+  })
+  .filter((h) => h && h.endsWith('.netlify.app'));
+
+function isAllowedOrigin(origin) {
+  if (allowedOrigins.includes(origin)) return true;
+  try {
+    const { host, protocol } = new URL(origin);
+    if (protocol !== 'https:') return false;
+    return previewHosts.some((h) => host.endsWith(`--${h}`));
+  } catch {
+    return false;
+  }
+}
+
 const corsOptions = {
-  origin: '*',
+  origin: (origin, callback) => {
+    // No Origin header: server-to-server or curl, which CORS does not police.
+    if (!origin || isAllowedOrigin(origin)) return callback(null, true);
+    // Answer without the allow-origin header rather than throwing: the browser
+    // blocks the response either way, and this keeps a probe from turning into
+    // a 500 in the logs.
+    callback(null, false);
+  },
   methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE', 'PATCH', 'HEAD'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Admin-Secret'],
   credentials: false,
 };
 
@@ -43,99 +80,116 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3001;
 
+/**
+ * Verify the caller's Supabase access token.
+ *
+ * Every endpoint here reads and writes with the service role key, which bypasses
+ * RLS, so the request's own identity is the only thing standing between one user
+ * and another user's data. The token is validated against Supabase rather than
+ * merely decoded: an unverified decode accepts any string a caller cares to
+ * forge. Results are cached briefly so a page load does not make one auth
+ * round-trip per API call.
+ */
+const AUTH_CACHE_TTL_MS = 60 * 1000;
+const AUTH_CACHE_MAX = 1000;
+const authCache = new Map();
+
+async function requireAuth(req, res, next) {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7).trim() : null;
+
+  if (!token) {
+    return res.status(401).json({ error: 'Missing bearer token' });
+  }
+
+  const cached = authCache.get(token);
+  if (cached && cached.expiresAt > Date.now()) {
+    req.userId = cached.userId;
+    return next();
+  }
+  if (cached) authCache.delete(token);
+
+  try {
+    const { data, error } = await supabase.auth.getUser(token);
+    if (error || !data?.user?.id) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+
+    if (authCache.size >= AUTH_CACHE_MAX) {
+      // Cheapest safe eviction: drop the oldest insertion.
+      authCache.delete(authCache.keys().next().value);
+    }
+    authCache.set(token, {
+      userId: data.user.id,
+      expiresAt: Date.now() + AUTH_CACHE_TTL_MS,
+    });
+
+    req.userId = data.user.id;
+    next();
+  } catch (err) {
+    console.error('[Auth] Token verification failed:', err.message);
+    res.status(401).json({ error: 'Token verification failed' });
+  }
+}
+
+/**
+ * Assert the user id the request is acting on is the caller's own.
+ * `pick` pulls that id out of the params, body or query of the request.
+ */
+function requireSelf(pick) {
+  return (req, res, next) => {
+    const target = pick(req);
+    if (!target) {
+      return res.status(400).json({ error: 'Missing userId' });
+    }
+    if (target !== req.userId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    next();
+  };
+}
+
+/** Confirm the caller owns the entry row before reading or deleting it. */
+async function requireEntryOwner(req, res, next) {
+  const { entryId } = req.params;
+  const { data, error } = await supabaseAdmin
+    .from('rsa_entries')
+    .select('user_id')
+    .eq('id', entryId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('[Auth] Entry ownership lookup failed:', error);
+    return res.status(500).json({ error: 'Failed to verify entry ownership' });
+  }
+  // A row belonging to someone else is reported as missing rather than
+  // forbidden, so this endpoint cannot be used to probe for valid entry ids.
+  if (!data || data.user_id !== req.userId) {
+    return res.status(404).json({ error: 'Entry not found' });
+  }
+  next();
+}
+
+/** Operator-only routes, gated on a shared secret rather than a user session. */
+function requireAdmin(req, res, next) {
+  const expected = process.env.ADMIN_SECRET;
+  if (!expected) {
+    return res.status(503).json({ error: 'Admin endpoints are disabled' });
+  }
+  const provided = req.get('X-Admin-Secret');
+  if (!provided || provided !== expected) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  next();
+}
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// Diagnostic endpoint to check and fix schema issues
-app.get('/api/diagnose/schema', async (req, res) => {
-  try {
-    console.log('[Diagnose] Checking rsa_profiles schema...');
-
-    // Check column type using information_schema
-    const { data: columns, error: colError } = await supabaseAdmin
-      .from('information_schema.columns')
-      .select('column_name, data_type, udt_name')
-      .eq('table_name', 'rsa_profiles')
-      .eq('column_name', 'encrypted_data');
-
-    if (colError) {
-      console.log('[Diagnose] Could not query information_schema, trying direct check');
-    }
-
-    // Try a different approach - fetch a test record and check its type
-    const { data: testProfile, error: testError } = await supabaseAdmin
-      .from('rsa_profiles')
-      .select('encrypted_data')
-      .limit(1);
-
-    let encryptedDataType = 'unknown';
-    if (testProfile && testProfile.length > 0) {
-      const val = testProfile[0].encrypted_data;
-      encryptedDataType = typeof val;
-      if (typeof val === 'object') {
-        encryptedDataType = `object: ${JSON.stringify(val).substring(0, 50)}`;
-      }
-    }
-
-    res.json({
-      status: 'checked',
-      encrypted_data_sample_type: encryptedDataType,
-      info_schema: columns,
-      note: 'If encrypted_data_sample_type is "object", column is likely still JSONB and needs migration'
-    });
-  } catch (error) {
-    console.error('[Diagnose] Error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Diagnostic endpoint to test direct profile save with debugging
-app.get('/api/diagnose/test-save/:userId/:encrypted', async (req, res) => {
-  try {
-    const { userId, encrypted } = req.params;
-
-    console.log('[Diagnose-TestSave] Testing save for userId:', userId);
-    console.log('[Diagnose-TestSave] Encrypted length:', encrypted.length);
-    console.log('[Diagnose-TestSave] Encrypted first 50:', encrypted.substring(0, 50));
-
-    const upsertObject = {
-      user_id: userId,
-      encrypted_data: encrypted,
-      updated_at: new Date().toISOString(),
-    };
-
-    console.log('[Diagnose-TestSave] Before upsert - encrypted_data type:', typeof upsertObject.encrypted_data);
-    console.log('[Diagnose-TestSave] Before upsert - encrypted_data length:', upsertObject.encrypted_data.length);
-
-    const { data, error } = await supabaseAdmin
-      .from('rsa_profiles')
-      .upsert(upsertObject, { onConflict: 'user_id' })
-      .select();
-
-    if (error) {
-      console.error('[Diagnose-TestSave] Upsert error:', error);
-      res.status(500).json({ error: error.message });
-      return;
-    }
-
-    console.log('[Diagnose-TestSave] After upsert - data:', data);
-    if (data && data[0]) {
-      console.log('[Diagnose-TestSave] Returned encrypted_data:', data[0].encrypted_data);
-      console.log('[Diagnose-TestSave] Returned encrypted_data type:', typeof data[0].encrypted_data);
-      console.log('[Diagnose-TestSave] Returned encrypted_data length:', data[0].encrypted_data?.length);
-    }
-
-    res.json({ success: true, saved: data[0] });
-  } catch (error) {
-    console.error('[Diagnose-TestSave] Error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
 // Main Claude API endpoint
-app.post('/api/claude', async (req, res) => {
+app.post('/api/claude', requireAuth, async (req, res) => {
   try {
     const { system, messages, max_tokens = 500 } = req.body;
 
@@ -212,7 +266,7 @@ app.post('/api/claude', async (req, res) => {
 });
 
 // Belief suggestions endpoint
-app.post('/api/suggest-beliefs', async (req, res) => {
+app.post('/api/suggest-beliefs', requireAuth, async (req, res) => {
   try {
     const { situation, stepA } = req.body;
 
@@ -258,7 +312,7 @@ Example output format:
 });
 
 // Rewrite check endpoint
-app.post('/api/check-rewrite', async (req, res) => {
+app.post('/api/check-rewrite', requireAuth, async (req, res) => {
   try {
     const { originalBelief, failedRuleIds, rewrite, ruleDescriptions } = req.body;
 
@@ -315,7 +369,7 @@ Is the new version better? Which rules still need work?`;
 // ===== User Setup & Profile Endpoints =====
 
 // POST /api/user/setup - Create new user with recovery code
-app.post('/api/user/setup', async (req, res) => {
+app.post('/api/user/setup', requireAuth, requireSelf((req) => req.body.userId), async (req, res) => {
   try {
     const { userId, recoveryCode } = req.body;
 
@@ -326,17 +380,36 @@ app.post('/api/user/setup', async (req, res) => {
     console.log('[Setup] Using supabaseAdmin (service role key):', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
     console.log('[Setup] Creating user:', userId);
 
-    const { data, error } = await supabaseAdmin
+    // This runs on every sign-in, not just the first one. Sending created_at and
+    // last_check_in here reset both columns each time a user logged in: the
+    // signup date became "last login" and the check-in streak was wiped. Only
+    // insert those on the row that does not exist yet.
+    const { data: existing, error: lookupError } = await supabaseAdmin
       .from('rsa_users')
-      .upsert(
-        {
+      .select('id')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (lookupError) {
+      console.error('[Setup] Lookup error:', lookupError);
+      throw lookupError;
+    }
+
+    const row = existing
+      ? {
+          id: userId,
+          recovery_code_hash: Buffer.from(recoveryCode).toString('base64'),
+        }
+      : {
           id: userId,
           recovery_code_hash: Buffer.from(recoveryCode).toString('base64'),
           created_at: new Date().toISOString(),
           last_check_in: null,
-        },
-        { onConflict: 'id' }
-      )
+        };
+
+    const { data, error } = await supabaseAdmin
+      .from('rsa_users')
+      .upsert(row, { onConflict: 'id' })
       .select();
 
     if (error) {
@@ -353,53 +426,20 @@ app.post('/api/user/setup', async (req, res) => {
 });
 
 // POST /api/user/profile - Save encrypted profile
-app.post('/api/user/profile', async (req, res) => {
+app.post('/api/user/profile', requireAuth, requireSelf((req) => req.body.userId), async (req, res) => {
   try {
-    console.log('\n[Profile] === PROFILE SAVE REQUEST START ===');
-    console.log('[Profile] Content-Type:', req.get('Content-Type'));
-    console.log('[Profile] Content-Length:', req.get('Content-Length'));
-    console.log('[Profile] req.body type:', typeof req.body);
-    console.log('[Profile] req.body is null:', req.body === null);
-    console.log('[Profile] req.body is undefined:', req.body === undefined);
-    console.log('[Profile] req.body keys:', Object.keys(req.body || {}));
-
-    // Log the full body stringify
-    try {
-      const bodyStr = JSON.stringify(req.body);
-      console.log('[Profile] JSON.stringify(req.body) length:', bodyStr.length);
-      console.log('[Profile] JSON.stringify(req.body) first 200:', bodyStr.substring(0, 200));
-    } catch (e) {
-      console.log('[Profile] Could not stringify req.body:', e.message);
-    }
-
-    console.log('[Profile] req.body.encryptedProfile type:', typeof req.body.encryptedProfile);
-    console.log('[Profile] req.body.encryptedProfile value:', req.body.encryptedProfile);
-    if (req.body.encryptedProfile) {
-      console.log('[Profile] req.body.encryptedProfile is string:', typeof req.body.encryptedProfile === 'string');
-      console.log('[Profile] req.body.encryptedProfile is Buffer:', Buffer.isBuffer(req.body.encryptedProfile));
-      console.log('[Profile] req.body.encryptedProfile length:', req.body.encryptedProfile.length);
-      console.log('[Profile] req.body.encryptedProfile first 100:', String(req.body.encryptedProfile).substring(0, 100));
-    }
-
     const { userId, encryptedProfile } = req.body;
 
     if (!userId || !encryptedProfile) {
-      console.log('[Profile] ERROR: Missing userId or encryptedProfile');
-      console.log('[Profile]   userId exists:', !!userId, 'type:', typeof userId);
-      console.log('[Profile]   encryptedProfile exists:', !!encryptedProfile, 'type:', typeof encryptedProfile);
-      console.log('[Profile]   encryptedProfile value after destructure:', encryptedProfile);
       return res.status(400).json({ error: 'Missing userId or encryptedProfile' });
     }
 
-    console.log('[Profile] Received save request:');
-    console.log('[Profile]   userId:', userId);
-    console.log('[Profile]   encryptedProfile type:', typeof encryptedProfile);
-    console.log('[Profile]   encryptedProfile length:', encryptedProfile.length);
-    console.log('[Profile]   encryptedProfile first 100 chars:', encryptedProfile.substring(0, 100));
-    console.log('[Profile]   encryptedProfile last 100 chars:', encryptedProfile.substring(Math.max(0, encryptedProfile.length - 100)));
+    // The ciphertext itself is never logged: it is the user's profile, and
+    // Railway's log retention is not the place for it. Length is enough to
+    // tell a real save from an empty one.
+    console.log('[Profile] Save request for', userId, '- payload length:', encryptedProfile.length);
 
-    // Ensure user exists in rsa_users table (required for foreign key)
-    console.log('[Profile] Creating user in rsa_users if not exists:', userId);
+    // rsa_profiles.user_id is a foreign key, so the rsa_users row has to exist.
     const { error: userError } = await supabaseAdmin
       .from('rsa_users')
       .upsert({ id: userId }, { onConflict: 'id' })
@@ -409,48 +449,31 @@ app.post('/api/user/profile', async (req, res) => {
       console.error('[Profile] Error creating user:', userError);
       throw userError;
     }
-    console.log('[Profile] User ensured in rsa_users');
-
-    // Debug: log the exact object being sent to Supabase
-    const upsertObject = {
-      user_id: userId,
-      encrypted_data: encryptedProfile,
-      updated_at: new Date().toISOString(),
-    };
-    console.log('[Profile] === BEFORE UPSERT ===');
-    console.log('[Profile] Upsert object keys:', Object.keys(upsertObject));
-    console.log('[Profile] upsertObject.user_id:', upsertObject.user_id);
-    console.log('[Profile] upsertObject.encrypted_data type:', typeof upsertObject.encrypted_data);
-    console.log('[Profile] upsertObject.encrypted_data length:', upsertObject.encrypted_data.length);
-    console.log('[Profile] upsertObject.encrypted_data value:', upsertObject.encrypted_data);
-    console.log('[Profile] upsertObject.encrypted_data substring(0,100):', upsertObject.encrypted_data.substring(0, 100));
 
     const { data, error } = await supabaseAdmin
       .from('rsa_profiles')
       .upsert(
-        upsertObject,
+        {
+          user_id: userId,
+          encrypted_data: encryptedProfile,
+          updated_at: new Date().toISOString(),
+        },
         { onConflict: 'user_id' }
       )
       .select();
 
     if (error) {
-      console.error('[Profile] UPSERT ERROR:', error);
+      console.error('[Profile] Upsert error:', error);
       throw error;
     }
 
-    console.log('[Profile] === AFTER UPSERT ===');
-    console.log('[Profile] Upsert successful');
-    console.log('[Profile] Returned data:', data);
-    if (data && data[0]) {
-      console.log('[Profile] data[0] keys:', Object.keys(data[0]));
-      console.log('[Profile] data[0].encrypted_data type:', typeof data[0].encrypted_data);
-      console.log('[Profile] data[0].encrypted_data value:', data[0].encrypted_data);
-      console.log('[Profile] data[0].encrypted_data length:', data[0].encrypted_data?.length);
-      console.log('[Profile] Sent length:', encryptedProfile.length, 'Returned length:', data[0].encrypted_data?.length);
-      console.log('[Profile] Data matches:', encryptedProfile === data[0].encrypted_data);
-    } else {
-      console.log('[Profile] WARNING: No data returned from upsert!');
+    if (!data || !data[0]) {
+      // A write that stored nothing must not report success.
+      console.error('[Profile] Upsert affected 0 rows for', userId);
+      return res.status(500).json({ error: 'Profile write affected 0 rows' });
     }
+
+    console.log('[Profile] Saved for', userId, '- stored length:', data[0].encrypted_data?.length);
     res.json({ profile: data[0] });
   } catch (error) {
     console.error('Profile save error:', error);
@@ -459,7 +482,7 @@ app.post('/api/user/profile', async (req, res) => {
 });
 
 // GET /api/user/profile - Retrieve encrypted profile
-app.get('/api/user/profile', async (req, res) => {
+app.get('/api/user/profile', requireAuth, requireSelf((req) => req.query.userId), async (req, res) => {
   try {
     const userId = req.query.userId;
 
@@ -496,67 +519,10 @@ app.get('/api/user/profile', async (req, res) => {
   }
 });
 
-// DEBUG: GET /api/debug/profile - Inspect raw encrypted profile
-app.get('/api/debug/profile', async (req, res) => {
-  try {
-    const userId = req.query.userId;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'Missing userId query parameter' });
-    }
-
-    console.log('[DebugProfile] Inspecting userId:', userId);
-
-    const { data, error } = await supabaseAdmin
-      .from('rsa_profiles')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
-
-    if (error && error.code !== 'PGRST116') throw error;
-
-    if (!data) {
-      return res.json({ found: false, message: 'No profile found' });
-    }
-
-    const encrypted = data.encrypted_data;
-    const analysisResult = {
-      found: true,
-      encrypted_data: {
-        type: typeof encrypted,
-        length: encrypted?.length,
-        isNull: encrypted === null,
-        isUndefined: encrypted === undefined,
-        isEmpty: encrypted === '',
-        firstChars: encrypted ? encrypted.substring(0, 50) : null,
-        lastChars: encrypted ? encrypted.substring(Math.max(0, encrypted.length - 50)) : null,
-        startsWithQuote: encrypted ? encrypted.startsWith('"') : null,
-        endsWithQuote: encrypted ? encrypted.endsWith('"') : null,
-        base64Pattern: encrypted ? /^[A-Za-z0-9+/=]*$/.test(encrypted) : null,
-        hexDump: encrypted ? Buffer.from(encrypted.substring(0, 48)).toString('hex') : null,
-      },
-      ai_profile: {
-        type: typeof data.ai_profile,
-        isObject: data.ai_profile && typeof data.ai_profile === 'object',
-        length: typeof data.ai_profile === 'string' ? data.ai_profile.length : 'N/A (not a string)',
-        preview: typeof data.ai_profile === 'string' ? data.ai_profile.substring(0, 100) : JSON.stringify(data.ai_profile).substring(0, 100),
-      },
-      created_at: data.created_at,
-      updated_at: data.updated_at,
-    };
-
-    console.log('[DebugProfile] Analysis:', JSON.stringify(analysisResult, null, 2));
-    res.json(analysisResult);
-  } catch (error) {
-    console.error('Debug profile error:', error);
-    res.status(500).json({ error: error.message || 'Failed to inspect profile' });
-  }
-});
-
 // ===== Entry Endpoints =====
 
 // POST /api/entries - Save or update an RSA entry
-app.post('/api/entries', async (req, res) => {
+app.post('/api/entries', requireAuth, requireSelf((req) => req.body.userId), async (req, res) => {
   try {
     const { userId, encryptedData, status, entryId: requestedId } = req.body;
 
@@ -638,7 +604,7 @@ app.post('/api/entries', async (req, res) => {
 });
 
 // GET /api/entries/in-progress/:userId - Get all in-progress entries for a user
-app.get('/api/entries/in-progress/:userId', async (req, res) => {
+app.get('/api/entries/in-progress/:userId', requireAuth, requireSelf((req) => req.params.userId), async (req, res) => {
   try {
     const { userId } = req.params;
 
@@ -668,7 +634,7 @@ app.get('/api/entries/in-progress/:userId', async (req, res) => {
 // The Decision Log used to call the in-progress endpoint, so completed
 // check-ins were saved but never shown and never reached the AI context.
 // NOTE: must stay above /api/entries/:entryId or Express matches "all" as an id.
-app.get('/api/entries/all/:userId', async (req, res) => {
+app.get('/api/entries/all/:userId', requireAuth, requireSelf((req) => req.params.userId), async (req, res) => {
   try {
     const { userId } = req.params;
 
@@ -694,7 +660,7 @@ app.get('/api/entries/all/:userId', async (req, res) => {
 });
 
 // GET /api/entries/:entryId - Get a specific entry for resuming
-app.get('/api/entries/:entryId', async (req, res) => {
+app.get('/api/entries/:entryId', requireAuth, requireEntryOwner, async (req, res) => {
   try {
     const { entryId } = req.params;
 
@@ -734,14 +700,12 @@ app.get('/api/entries/:entryId', async (req, res) => {
 });
 
 // DELETE /api/entries/:entryId - Delete an entry
-app.delete('/api/entries/:entryId', async (req, res) => {
+app.delete('/api/entries/:entryId', requireAuth, requireEntryOwner, async (req, res) => {
   try {
     const { entryId } = req.params;
-    const { userId } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'Missing userId' });
-    }
+    // The owner comes from the verified token, not the request body: ownership
+    // has already been checked by requireEntryOwner against this same id.
+    const userId = req.userId;
 
     console.log('[Entries] Deleting entry:', entryId, 'for userId:', userId);
 
@@ -776,7 +740,7 @@ app.delete('/api/entries/:entryId', async (req, res) => {
 // ===== Check-in Endpoints =====
 
 // POST /api/check-in - Log a check-in
-app.post('/api/check-in', async (req, res) => {
+app.post('/api/check-in', requireAuth, requireSelf((req) => req.body.userId), async (req, res) => {
   try {
     const { userId, stepCompleted } = req.body;
 
@@ -809,7 +773,7 @@ app.post('/api/check-in', async (req, res) => {
 });
 
 // GET /api/check-in/schedule/:userId - Get next check-in date
-app.get('/api/check-in/schedule/:userId', async (req, res) => {
+app.get('/api/check-in/schedule/:userId', requireAuth, requireSelf((req) => req.params.userId), async (req, res) => {
   try {
     const { userId } = req.params;
 
@@ -856,7 +820,7 @@ app.get('/api/check-in/schedule/:userId', async (req, res) => {
 });
 
 // GET /api/check-in/history/:userId - Get check-in history
-app.get('/api/check-in/history/:userId', async (req, res) => {
+app.get('/api/check-in/history/:userId', requireAuth, requireSelf((req) => req.params.userId), async (req, res) => {
   try {
     const { userId } = req.params;
 
@@ -876,136 +840,8 @@ app.get('/api/check-in/history/:userId', async (req, res) => {
   }
 });
 
-// ===== PO Dashboard Endpoints =====
-
-// POST /api/po/auth - PO login (Supabase auth)
-app.post('/api/po/auth', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Missing email or password' });
-    }
-
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) throw error;
-
-    res.json({ user: data.user, session: data.session });
-  } catch (error) {
-    console.error('Auth error:', error);
-    res.status(401).json({ error: error.message || 'Authentication failed' });
-  }
-});
-
-// GET /api/po/dashboard - Get assigned users for PO
-app.get('/api/po/dashboard', async (req, res) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ error: 'Missing authorization header' });
-    }
-
-    const token = authHeader.split(' ')[1];
-    const decoded = jwtDecode(token);
-    const poId = decoded.sub;
-
-    const { data, error } = await supabase
-      .from('rsa_po_assignments')
-      .select(`
-        user_id,
-        assigned_at,
-        rsa_users (
-          id,
-          created_at,
-          last_check_in
-        )
-      `)
-      .eq('po_id', poId);
-
-    if (error) throw error;
-
-    // Calculate compliance for each user
-    const users = data.map(assignment => {
-      const user = assignment.rsa_users;
-      const createdDate = new Date(user.created_at);
-      const weeksActive = Math.ceil((Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24 * 7));
-      const lastCheckIn = user.last_check_in ? new Date(user.last_check_in) : null;
-
-      return {
-        userId: user.id,
-        createdAt: user.created_at,
-        lastCheckIn: lastCheckIn?.toISOString() || null,
-        weeksActive,
-        assignedAt: assignment.assigned_at,
-      };
-    });
-
-    res.json({ users });
-  } catch (error) {
-    console.error('Dashboard fetch error:', error);
-    res.status(500).json({ error: error.message || 'Failed to fetch dashboard' });
-  }
-});
-
-// GET /api/po/compliance/:userId - Get compliance data for a user
-app.get('/api/po/compliance/:userId', async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader) {
-      return res.status(401).json({ error: 'Missing authorization header' });
-    }
-
-    // Verify PO has access to this user
-    const token = authHeader.split(' ')[1];
-    const decoded = jwtDecode(token);
-    const poId = decoded.sub;
-
-    const { error: permError } = await supabase
-      .from('rsa_po_assignments')
-      .select('id')
-      .eq('po_id', poId)
-      .eq('user_id', userId)
-      .single();
-
-    if (permError) {
-      return res.status(403).json({ error: 'Not authorized to view this user' });
-    }
-
-    const { data, error } = await supabase
-      .from('rsa_check_ins')
-      .select('checked_in_at')
-      .eq('user_id', userId)
-      .order('checked_in_at', { ascending: false })
-      .limit(52);
-
-    if (error) throw error;
-
-    const checkIns = data || [];
-    const today = new Date();
-    const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const recentCheckIns = checkIns.filter(ci => new Date(ci.checked_in_at) >= sevenDaysAgo);
-
-    res.json({
-      compliance: {
-        lastCheckIn: checkIns[0]?.checked_in_at || null,
-        lastWeekCheckIns: recentCheckIns.length,
-        checkInHistory: checkIns,
-      },
-    });
-  } catch (error) {
-    console.error('Compliance fetch error:', error);
-    res.status(500).json({ error: error.message || 'Failed to fetch compliance' });
-  }
-});
-
 // ADMIN: POST /api/admin/cleanup-profiles - Remove malformed profile data
-app.post('/api/admin/cleanup-profiles', async (req, res) => {
+app.post('/api/admin/cleanup-profiles', requireAdmin, async (req, res) => {
   try {
     console.log('[CleanupProfiles] Starting cleanup of malformed profiles');
 
@@ -1057,7 +893,7 @@ app.post('/api/admin/cleanup-profiles', async (req, res) => {
 // ===== AI Profile Endpoints (Family Members & Reaction Assessment) =====
 
 // POST /api/ai-profile/:userId - Save AI Profile
-app.post('/api/ai-profile/:userId', async (req, res) => {
+app.post('/api/ai-profile/:userId', requireAuth, requireSelf((req) => req.params.userId), async (req, res) => {
   try {
     const { userId } = req.params;
     const { familyMembers, scenarioResponses, reactionPatterns } = req.body;
@@ -1121,7 +957,7 @@ app.post('/api/ai-profile/:userId', async (req, res) => {
 });
 
 // GET /api/ai-profile/:userId - Load AI Profile
-app.get('/api/ai-profile/:userId', async (req, res) => {
+app.get('/api/ai-profile/:userId', requireAuth, requireSelf((req) => req.params.userId), async (req, res) => {
   try {
     const { userId } = req.params;
 
@@ -1159,7 +995,7 @@ app.get('/api/ai-profile/:userId', async (req, res) => {
 });
 
 // POST /api/scenario-questions/generate - Generate follow-up questions
-app.post('/api/scenario-questions/generate', async (req, res) => {
+app.post('/api/scenario-questions/generate', requireAuth, requireSelf((req) => req.body.userId), async (req, res) => {
   try {
     const { userId, userResponse, triggeredByQuestionId, userProfile } = req.body;
 
@@ -1263,7 +1099,7 @@ Generate 1-2 follow-up questions to deepen their reflection on this response.`;
 });
 
 // GET /api/scenario-questions/cached - Get previously generated questions
-app.get('/api/scenario-questions/cached', async (req, res) => {
+app.get('/api/scenario-questions/cached', requireAuth, requireSelf((req) => req.query.userId), async (req, res) => {
   try {
     const { userId, limit = 10 } = req.query;
 

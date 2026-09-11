@@ -1,4 +1,5 @@
 import { useRSAStore } from '../stores/useRSAStore';
+import { apiFetch } from './api';
 
 export interface Message {
   role: 'user' | 'assistant';
@@ -125,14 +126,10 @@ Guidelines:
 - Guide them through the process sequentially (Situation → Facts → Thoughts → Beliefs → Emotions → Reframe → New perspective)
 - Match their pace - don't rush. Focus on helping them see one thing clearly at a time${phaseGuidance}`;
 
-  const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://rsa-backend-production-7b95.up.railway.app';
-  console.log('[AIConversation] Backend URL:', backendUrl);
-
   try {
     console.log('[AIConversation] Making fetch request to /api/claude');
-    const response = await fetch(`${backendUrl}/api/claude`, {
+    const response = await apiFetch('/api/claude', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         system: systemPrompt,
         messages: [

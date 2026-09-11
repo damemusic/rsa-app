@@ -1,4 +1,4 @@
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+import { apiFetch } from './api';
 
 export interface GeneratedQuestion {
   id: string;
@@ -18,9 +18,8 @@ export async function generateFollowUpQuestions(
   try {
     console.log('[QuestionGen] Requesting follow-up questions for:', triggeredByQuestionId);
 
-    const response = await fetch(`${BACKEND_URL}/api/scenario-questions/generate`, {
+    const response = await apiFetch('/api/scenario-questions/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         userId,
         userResponse,
@@ -49,12 +48,9 @@ export async function getCachedQuestions(
   try {
     console.log('[QuestionGen] Fetching cached questions for user');
 
-    const response = await fetch(
-      `${BACKEND_URL}/api/scenario-questions/cached?userId=${userId}&limit=${limit}`,
-      {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-      }
+    const response = await apiFetch(
+      `/api/scenario-questions/cached?userId=${userId}&limit=${limit}`,
+      { method: 'GET' }
     );
 
     if (!response.ok) {

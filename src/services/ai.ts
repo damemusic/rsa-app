@@ -1,7 +1,7 @@
 // Claude API integration for RSA app
 // Handles two AI touchpoints: belief suggestions (Step B) and rewrite feedback (Step D)
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+import { apiFetch } from './api';
 
 export async function callClaude(
   system: string,
@@ -9,11 +9,8 @@ export async function callClaude(
   maxTokens: number = 500
 ): Promise<string> {
   try {
-    const response = await fetch(`${BACKEND_URL}/api/claude`, {
+    const response = await apiFetch('/api/claude', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify({
         system,
         messages: [{ role: 'user', content: userText }],
@@ -35,11 +32,8 @@ export async function callClaude(
 // Step B: Get belief suggestions
 export async function suggestBeliefs(situation: string, stepA: string): Promise<string[]> {
   try {
-    const response = await fetch(`${BACKEND_URL}/api/suggest-beliefs`, {
+    const response = await apiFetch('/api/suggest-beliefs', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify({
         situation,
         stepA,
@@ -65,11 +59,8 @@ export async function checkRewrite(
   ruleDescriptions: Record<string, string>
 ): Promise<string> {
   try {
-    const response = await fetch(`${BACKEND_URL}/api/check-rewrite`, {
+    const response = await apiFetch('/api/check-rewrite', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify({
         originalBelief,
         failedRuleIds,

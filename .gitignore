@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local environment files. netlify.toml carries the build-time VITE_* values;
+# secrets belong in the Netlify and Railway dashboards, never in the repo.
+.env
+.env.local
+.env.*.local

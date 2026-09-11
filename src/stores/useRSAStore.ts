@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { freshRSA, STEPS } from '../services/rsa';
 import type { RSAEntry, Belief } from '../services/rsa';
 
-export type View = 'auth' | 'reset-password' | 'setup' | 'profile' | 'checkin' | 'landing' | 'crisis' | 'flow' | 'summary' | 'journal' | 'po-dashboard' | 'family' | 'ai-chat' | 'ai-rsa';
+export type View = 'auth' | 'reset-password' | 'profile' | 'checkin' | 'landing' | 'crisis' | 'flow' | 'summary' | 'journal' | 'family' | 'ai-chat' | 'ai-rsa';
 
 interface UserData {
   userId: string;
@@ -98,7 +98,6 @@ interface RSAStore {
   setView: (view: View) => void;
 
   // Journal
-  saveEntry: (userId: string, recoveryCode: string) => Promise<void>;
   setSavedEntry: () => void;
   loadEntries: () => void;
   setEntries: (entries: RSAEntry[]) => void;
@@ -263,12 +262,6 @@ export const useRSAStore = create<RSAStore>((set) => ({
           })),
 
         setView: (view) => set({ view }),
-
-        saveEntry: (_userId: string, _recoveryCode: string) => {
-          // This will be called from Summary.tsx which handles async
-          // For now, just return a resolved promise
-          return Promise.resolve();
-        },
 
         setSavedEntry: () =>
           set((state) => ({

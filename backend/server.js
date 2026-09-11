@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 const crypto = require('crypto');
 const Anthropic = require('@anthropic-ai/sdk').default;
 const { createClient } = require('@supabase/supabase-js');
+const analytics = require('./analytics');
 
 dotenv.config();
 
@@ -1126,6 +1127,234 @@ app.get('/api/scenario-questions/cached', requireAuth, requireSelf((req) => req.
     console.error('[CachedQuestions] Error:', error);
     res.status(500).json({ error: error.message || 'Failed to fetch cached questions' });
   }
+});
+
+// ===== Consent Endpoints =====
+
+/**
+ * Read the caller's own consent state.
+ *
+ * Returns the two decisions separately: accepting the terms gates the app,
+ * contributing to the aggregate dataset does not. A user who has never been
+ * asked comes back with both false and the current versions to show them.
+ */
+app.get('/api/consent', requireAuth, async (req, res) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('rsa_data_consents')
+      .select('*')
+      .eq('user_id', req.userId)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    // A stale version is not acceptance: the user agreed to different words.
+    const termsCurrent =
+      !!data && data.terms_version === analytics.TERMS_VERSION;
+    const analyticsCurrent =
+      !!data &&
+      data.analytics_granted === true &&
+      data.analytics_policy_version === analytics.ANALYTICS_POLICY_VERSION;
+
+    res.json({
+      termsAccepted: termsCurrent,
+      termsVersion: analytics.TERMS_VERSION,
+      analyticsGranted: analyticsCurrent,
+      analyticsPolicyVersion: analytics.ANALYTICS_POLICY_VERSION,
+    });
+  } catch (error) {
+    console.error('[Consent] Fetch error:', error);
+    res.status(500).json({ error: error.message || 'Failed to read consent' });
+  }
+});
+
+/**
+ * Record the caller's own consent decisions.
+ *
+ * Both fields are optional and independent, so the analytics choice can be
+ * changed later without re-accepting the terms, and declining it never touches
+ * access to the app.
+ *
+ * Revoking the analytics grant deletes that person's existing contributions.
+ * Aggregates published before the revocation cannot be recalled, which is what
+ * the disclosure says.
+ */
+app.post('/api/consent', requireAuth, async (req, res) => {
+  try {
+    const { acceptTerms, grantAnalytics } = req.body || {};
+    const now = new Date().toISOString();
+
+    const row = { user_id: req.userId, updated_at: now };
+
+    if (acceptTerms === true) {
+      row.terms_version = analytics.TERMS_VERSION;
+      row.terms_accepted_at = now;
+    }
+
+    if (grantAnalytics === true) {
+      row.analytics_granted = true;
+      row.analytics_policy_version = analytics.ANALYTICS_POLICY_VERSION;
+      row.analytics_granted_at = now;
+      row.analytics_revoked_at = null;
+    } else if (grantAnalytics === false) {
+      row.analytics_granted = false;
+      row.analytics_revoked_at = now;
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('rsa_data_consents')
+      .upsert(row, { onConflict: 'user_id' })
+      .select();
+
+    if (error) throw error;
+    if (!data || !data[0]) {
+      return res.status(500).json({ error: 'Consent write affected 0 rows' });
+    }
+
+    let contributionsDeleted = 0;
+    // Without the secret nothing could ever have been recorded, and asking for
+    // the key would throw — an opt-out must never fail on the way out.
+    if (grantAnalytics === false && process.env.ANALYTICS_CONTRIBUTOR_SECRET) {
+      const key = analytics.contributorKey(
+        req.userId,
+        process.env.ANALYTICS_CONTRIBUTOR_SECRET
+      );
+      const { data: removed, error: delError } = await supabaseAdmin
+        .from('analytics_checkin_facts')
+        .delete()
+        .eq('contributor_key', key)
+        .select('id');
+
+      if (delError) throw delError;
+      contributionsDeleted = removed?.length || 0;
+    }
+
+    console.log(
+      '[Consent] Updated for', req.userId,
+      '- terms:', data[0].terms_version,
+      '- analytics:', data[0].analytics_granted,
+      '- contributions deleted:', contributionsDeleted
+    );
+
+    res.json({
+      termsAccepted: data[0].terms_version === analytics.TERMS_VERSION,
+      analyticsGranted: data[0].analytics_granted === true,
+      contributionsDeleted,
+    });
+  } catch (error) {
+    console.error('[Consent] Save error:', error);
+    res.status(500).json({ error: error.message || 'Failed to save consent' });
+  }
+});
+
+// ===== Analytics Endpoints =====
+
+/**
+ * Contribute one de-identified fact about a completed check-in.
+ *
+ * The body carries taxonomy codes only — never the check-in text, and never
+ * anything derived from it by the server. The codes come from the user picking
+ * them, so nothing is inferred from their private writing.
+ *
+ * Refused unless a current analytics consent is on file. The consent check is
+ * a fresh read every time rather than anything cached, so a revocation takes
+ * effect on the next call.
+ */
+app.post('/api/analytics/checkin', requireAuth, async (req, res) => {
+  try {
+    if (!process.env.ANALYTICS_CONTRIBUTOR_SECRET) {
+      return res.status(503).json({ error: 'Analytics collection is disabled' });
+    }
+
+    const { data: consent, error: consentError } = await supabaseAdmin
+      .from('rsa_data_consents')
+      .select('analytics_granted, analytics_policy_version')
+      .eq('user_id', req.userId)
+      .maybeSingle();
+
+    if (consentError) throw consentError;
+
+    const granted =
+      consent &&
+      consent.analytics_granted === true &&
+      consent.analytics_policy_version === analytics.ANALYTICS_POLICY_VERSION;
+
+    if (!granted) {
+      // Not an error the user needs to see — the client simply should not have
+      // called, and the row is dropped rather than stored.
+      return res.status(403).json({ error: 'No current analytics consent' });
+    }
+
+    const validated = analytics.validateFact(req.body);
+    if (!validated.ok) {
+      return res.status(400).json({ error: validated.error });
+    }
+
+    const { error } = await supabaseAdmin
+      .from('analytics_checkin_facts')
+      .insert({
+        contributor_key: analytics.contributorKey(
+          req.userId,
+          process.env.ANALYTICS_CONTRIBUTOR_SECRET
+        ),
+        period_month: analytics.periodMonth(),
+        ...validated.fact,
+      });
+
+    if (error) throw error;
+
+    res.json({ recorded: true });
+  } catch (error) {
+    console.error('[Analytics] Contribution error:', error);
+    res.status(500).json({ error: error.message || 'Failed to record' });
+  }
+});
+
+/**
+ * The report a buyer receives: aggregate counts, k-anonymity enforced here in
+ * code rather than trusted to whoever writes the query.
+ *
+ * Operator-gated for now. When this becomes a customer-facing endpoint it
+ * needs per-buyer credentials and an audit log of what was pulled; it must not
+ * simply be opened up.
+ */
+app.get('/api/analytics/report', requireAdmin, async (req, res) => {
+  try {
+    const dimensions = String(req.query.dimensions || 'need_category')
+      .split(',')
+      .map((d) => d.trim())
+      .filter(Boolean);
+
+    // The threshold may be raised for a given pull but never lowered.
+    const requestedK = parseInt(req.query.k, 10);
+    const k =
+      Number.isFinite(requestedK) && requestedK > analytics.DEFAULT_K
+        ? requestedK
+        : analytics.DEFAULT_K;
+
+    const { data, error } = await supabaseAdmin
+      .from('analytics_checkin_facts')
+      .select('contributor_key, period_month, region, need_category, support_accessed, outcome_signal');
+
+    if (error) throw error;
+
+    let report;
+    try {
+      report = analytics.aggregate(data || [], dimensions, k);
+    } catch (aggErr) {
+      return res.status(400).json({ error: aggErr.message });
+    }
+
+    res.json(report);
+  } catch (error) {
+    console.error('[Analytics] Report error:', error);
+    res.status(500).json({ error: error.message || 'Failed to build report' });
+  }
+});
+
+/** The taxonomy the client renders its picker from. */
+app.get('/api/analytics/taxonomy', requireAuth, (req, res) => {
+  res.json({ taxonomy: analytics.TAXONOMY });
 });
 
 app.listen(PORT, () => {

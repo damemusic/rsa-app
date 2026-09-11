@@ -1,0 +1,112 @@
+.consent-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 1rem;
+  background: var(--paper);
+}
+
+.consent-card {
+  max-width: 640px;
+  width: 100%;
+  padding: 2rem;
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.consent-card h1 {
+  color: var(--ink);
+  margin-bottom: 1.5rem;
+}
+
+.consent-section {
+  margin-bottom: 1.5rem;
+}
+
+.consent-section h2 {
+  color: var(--ink);
+  font-size: 1.15rem;
+  margin-bottom: 0.5rem;
+}
+
+.consent-section p {
+  color: var(--ink);
+  line-height: 1.55;
+  margin-bottom: 0.75rem;
+}
+
+/* The candid asides. Set apart so they read as plain talk, not fine print. */
+.consent-plain {
+  color: var(--ink-secondary, #8b8680);
+  font-size: 0.92rem;
+}
+
+.consent-list {
+  margin: 0 0 0.75rem 1.1rem;
+  padding: 0;
+  color: var(--ink);
+  line-height: 1.55;
+}
+
+.consent-list li {
+  margin-bottom: 0.5rem;
+}
+
+.consent-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.9rem 1rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--ink-tertiary, #e5e0d7);
+  border-radius: 6px;
+  cursor: pointer;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.consent-choice input {
+  margin-top: 0.25rem;
+  flex-shrink: 0;
+  width: 1.05rem;
+  height: 1.05rem;
+  cursor: pointer;
+}
+
+/* The required one carries a little more weight than the optional one, so the
+   difference between them is visible at a glance rather than only in the text. */
+.consent-required {
+  border-color: var(--ink-secondary, #8b8680);
+}
+
+.consent-continue {
+  width: 100%;
+}
+
+.consent-hint {
+  margin-top: 0.75rem;
+  font-size: 0.88rem;
+  color: var(--ink-secondary, #8b8680);
+  text-align: center;
+}
+
+.consent-error {
+  color: var(--brick, #a33);
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 480px) {
+  .consent-card {
+    padding: 1.25rem;
+  }
+}
+
+/* Links inside a checkbox label. The label would otherwise swallow the click
+   and toggle the box, so the handler stops propagation; this just makes them
+   look like links. */
+.consent-choice a {
+  color: var(--ink);
+  text-decoration: underline;
+}

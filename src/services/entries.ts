@@ -1,7 +1,6 @@
 import type { RSAEntry } from './rsa';
 import { encryptData, decryptData } from './encryption';
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+import { apiFetch } from './api';
 
 export async function saveProgressEntry(
   userId: string,
@@ -26,9 +25,8 @@ export async function saveProgressEntry(
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const existingId = UUID_RE.test(entry.id || '') ? entry.id : undefined;
 
-    const response = await fetch(`${BACKEND_URL}/api/entries`, {
+    const response = await apiFetch('/api/entries', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         userId,
         encryptedData,
@@ -54,9 +52,8 @@ export async function saveProgressEntry(
 
 export async function getInProgressEntries(userId: string): Promise<RSAEntry[]> {
   try {
-    const response = await fetch(`${BACKEND_URL}/api/entries/in-progress/${userId}`, {
+    const response = await apiFetch(`/api/entries/in-progress/${userId}`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
     });
 
     if (!response.ok) {
@@ -76,9 +73,8 @@ export async function resumeEntry(
   recoveryCode?: string
 ): Promise<RSAEntry | null> {
   try {
-    const response = await fetch(`${BACKEND_URL}/api/entries/${entryId}`, {
+    const response = await apiFetch(`/api/entries/${entryId}`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
     });
 
     if (!response.ok) {
@@ -98,9 +94,8 @@ export async function resumeEntry(
 
 export async function deleteProgressEntry(userId: string, entryId: string): Promise<void> {
   try {
-    const response = await fetch(`${BACKEND_URL}/api/entries/${entryId}`, {
+    const response = await apiFetch(`/api/entries/${entryId}`, {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId }),
     });
 
@@ -191,9 +186,8 @@ export async function getAllEntries(userId: string, recoveryCode?: string): Prom
     console.log('[entries] getAllEntries called for userId:', userId);
     // Every entry, not just in-progress ones: completed check-ins are the whole
     // point of the Decision Log.
-    const response = await fetch(`${BACKEND_URL}/api/entries/all/${userId}`, {
+    const response = await apiFetch(`/api/entries/all/${userId}`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
     });
 
     console.log('[entries] getAllEntries response status:', response.status);
@@ -221,9 +215,8 @@ export async function getAllEntries(userId: string, recoveryCode?: string): Prom
 export async function saveAIProfile(userId: string, profileData: unknown): Promise<void> {
   try {
     console.log('[entries] saveAIProfile called for userId:', userId);
-    const response = await fetch(`${BACKEND_URL}/api/ai-profile/${userId}`, {
+    const response = await apiFetch(`/api/ai-profile/${userId}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(profileData),
     });
 
@@ -248,9 +241,8 @@ export async function saveAIProfile(userId: string, profileData: unknown): Promi
 export async function getAIProfile(userId: string): Promise<Record<string, unknown> | null> {
   try {
     console.log('[entries] getAIProfile called for userId:', userId);
-    const response = await fetch(`${BACKEND_URL}/api/ai-profile/${userId}`, {
+    const response = await apiFetch(`/api/ai-profile/${userId}`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
     });
 
     if (!response.ok) {

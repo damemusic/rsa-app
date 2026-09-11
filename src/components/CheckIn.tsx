@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRSAStore } from '../stores/useRSAStore';
+import { apiFetch } from '../services/api';
 import './CheckIn.css';
 
 interface CheckInSchedule {
@@ -19,8 +20,8 @@ export function CheckIn() {
       if (!currentUser) return;
 
       try {
-        const response = await fetch(
-          `${import.meta.env.VITE_BACKEND_URL}/api/check-in/schedule/${currentUser.userId}`
+        const response = await apiFetch(
+          `/api/check-in/schedule/${currentUser.userId}`
         );
 
         if (!response.ok) throw new Error('Failed to fetch schedule');
@@ -41,9 +42,8 @@ export function CheckIn() {
     if (!currentUser) return;
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/check-in`, {
+      const response = await apiFetch('/api/check-in', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: currentUser.userId,
           stepCompleted: null,

@@ -1,32 +1,39 @@
-# React + TypeScript + Vite
+# RSA App
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Rational Self-Analysis check-in app: an AI-guided conversation that walks a
+person through a situation, the beliefs attached to it, and a reframe, and
+stores each check-in encrypted in a Decision Log.
 
-Currently, two official plugins are available:
+## Where it runs
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+| Piece | Where |
+|-------|-------|
+| Frontend (React + Vite) | https://harmonious-cassata-9d5220.netlify.app — Netlify project `harmonious-cassata-9d5220`, auto-deploys from `main` |
+| Backend (Express) | https://rsa-backend-production-7b95.up.railway.app — Railway project `rsa-app-backend` |
+| Database + auth | Supabase project `wthlnrogmwodfbekghsj` |
 
-## React Compiler
+There is no local development server for this project; see `CLAUDE.md`.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Layout
 
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```
+src/components/   Screens. AIGuidedRSA is the main check-in flow;
+                  StepFlow + Summary are the "Review & Adjust" path out of it.
+src/services/     api.ts wraps every backend call with the user's access token.
+                  encryption.ts does client-side AES-GCM on entries and profiles.
+src/stores/       Zustand store, persisted to localStorage.
+backend/server.js Express API. Runs on the Supabase service role key, so every
+                  /api route is behind requireAuth and an ownership check.
+supabase/migrations/  Schema history.
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## Data handling
+
+Check-ins and profile answers are encrypted in the browser before they are sent;
+the server stores ciphertext it cannot read. The key is derived from the user's
+recovery code, which is derived from their Supabase user id.
+
+## Deploying
+
+Push to `main`. Netlify builds the frontend, Railway redeploys the backend.
+Backend environment variables are documented in `backend/.env.example`.

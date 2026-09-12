@@ -102,10 +102,10 @@ export function ConsentGate({ onAccepted }: ConsentGateProps) {
         <section className="consent-section">
           <h2>Helping agencies see where support is needed</h2>
           <p>
-            We sell <strong>counts only</strong> to agencies and community
-            programs — reentry and supervision agencies among them — so they can
-            see what people in their area need help with and put resources
-            there.
+            Agencies and community programs — reentry and supervision
+            agencies among them — can pay us for <strong>counts only</strong>,
+            showing what people in their area need help with so they can put
+            resources there.
           </p>
           <ul className="consent-list">
             <li>

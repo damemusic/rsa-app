@@ -32,7 +32,7 @@ export const SUPPORT_OPTIONS = [
   { code: 'counselor', label: 'A counselor or therapist' },
   { code: 'faith_community', label: 'Faith community' },
   { code: 'program_staff', label: 'Program staff' },
-  { code: 'probation_officer', label: 'Probation officer' },
+  { code: 'probation_officer', label: 'Probation or parole officer' },
   { code: 'peer_support', label: 'Peer support' },
   { code: 'hotline', label: 'A hotline' },
   { code: 'other', label: 'Someone else' },

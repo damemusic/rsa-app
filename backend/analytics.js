@@ -49,14 +49,14 @@ const DEFAULT_K = 20;
  * Current terms version. Accepting these gates the app.
  * Bump when the terms or privacy policy change materially.
  */
-const TERMS_VERSION = '2026-09-12.1';
+const TERMS_VERSION = '2026-09-12.2';
 
 /**
  * Current data-contribution disclosure version. Bump when that text changes
  * materially: consent to the old wording is not consent to the new one, and a
  * mismatch stops contributions until the user agrees again.
  */
-const ANALYTICS_POLICY_VERSION = '2026-09-12.1';
+const ANALYTICS_POLICY_VERSION = '2026-09-12.2';
 
 /**
  * Stable pseudonym for a contributor.

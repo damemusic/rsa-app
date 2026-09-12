@@ -37,9 +37,11 @@ const REPORT_DIMENSIONS = ['period_month', 'region', ...FACT_FIELDS];
  * Minimum distinct people behind any published number.
  *
  * 20 is a deliberate floor rather than the 5 that shows up in a lot of
- * public-health reporting: the subjects here are under criminal supervision,
- * the buyer is the supervising agency, and a cell that narrows to a handful of
- * people stops being "where is the need" and becomes "who is struggling".
+ * public-health reporting: some of these users are under criminal supervision
+ * and some of the buyers supervise them, so a cell that narrows to a handful of
+ * people stops being "where is the need" and becomes "who is struggling". The
+ * floor protects everyone rather than only that group, since the app cannot
+ * tell which users are in it.
  */
 const DEFAULT_K = 20;
 
@@ -47,14 +49,14 @@ const DEFAULT_K = 20;
  * Current terms version. Accepting these gates the app.
  * Bump when the terms or privacy policy change materially.
  */
-const TERMS_VERSION = '2026-09-11.1';
+const TERMS_VERSION = '2026-09-12.1';
 
 /**
  * Current data-contribution disclosure version. Bump when that text changes
  * materially: consent to the old wording is not consent to the new one, and a
  * mismatch stops contributions until the user agrees again.
  */
-const ANALYTICS_POLICY_VERSION = '2026-09-11.1';
+const ANALYTICS_POLICY_VERSION = '2026-09-12.1';
 
 /**
  * Stable pseudonym for a contributor.

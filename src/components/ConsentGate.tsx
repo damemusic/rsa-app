@@ -65,7 +65,8 @@ export function ConsentGate({ onAccepted }: ConsentGateProps) {
             step-by-step check-in works without it.
           </p>
           <p className="consent-plain">
-            Your probation officer cannot see your account or your check-ins.
+            No agency can see your account or your check-ins — including a
+            supervision agency, if you happen to have one.
           </p>
         </section>
 
@@ -101,9 +102,10 @@ export function ConsentGate({ onAccepted }: ConsentGateProps) {
         <section className="consent-section">
           <h2>Helping agencies see where support is needed</h2>
           <p>
-            We sell <strong>counts only</strong> to probation and reentry
-            agencies, so they can see what people in their area need help with
-            and put resources there.
+            We sell <strong>counts only</strong> to agencies and community
+            programs — reentry and supervision agencies among them — so they can
+            see what people in their area need help with and put resources
+            there.
           </p>
           <ul className="consent-list">
             <li>
@@ -121,8 +123,8 @@ export function ConsentGate({ onAccepted }: ConsentGateProps) {
               can point at you.
             </li>
             <li>
-              <strong>Your officer cannot see your activity.</strong> Buyers
-              receive totals for an area, never anything about a person.
+              <strong>No one can see your activity.</strong> Buyers receive
+              totals for an area, never anything about a person.
             </li>
           </ul>
           <p className="consent-plain">

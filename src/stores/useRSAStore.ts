@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { freshRSA, STEPS } from '../services/rsa';
 import type { RSAEntry, Belief } from '../services/rsa';
 
-export type View = 'auth' | 'reset-password' | 'profile' | 'checkin' | 'landing' | 'crisis' | 'flow' | 'summary' | 'journal' | 'contribute' | 'family' | 'ai-chat' | 'ai-rsa';
+export type View = 'auth' | 'reset-password' | 'profile' | 'checkin' | 'landing' | 'crisis' | 'flow' | 'summary' | 'journal' | 'family' | 'ai-chat' | 'ai-rsa';
 
 interface UserData {
   userId: string;

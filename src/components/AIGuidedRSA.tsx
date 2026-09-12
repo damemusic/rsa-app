@@ -196,9 +196,7 @@ export function AIGuidedRSA() {
       // real id and text rather than a stale pre-save copy.
       setCurrentEntry(saved);
       setSavedEntry();
-      // setSavedEntry() lands on the journal; the contribute step sits in
-      // front of it and bounces straight through for anyone not opted in.
-      setView('contribute');
+      setView('journal');
     } catch (error) {
       console.error('[AIGuidedRSA] Error saving entry:', error);
       alert('Failed to save check-in. Please try again.');
